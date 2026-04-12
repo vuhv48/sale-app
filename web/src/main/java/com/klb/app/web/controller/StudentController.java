@@ -1,10 +1,13 @@
 package com.klb.app.web.controller;
 
-import com.klb.app.application.student.StudentResponse;
-import com.klb.app.application.student.StudentService;
+import com.klb.app.application.service.student.StudentPageResponse;
+import com.klb.app.application.service.student.StudentResponse;
+import com.klb.app.application.service.student.StudentService;
 import com.klb.app.web.dto.CreateStudentRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,8 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/students")
@@ -25,8 +26,10 @@ public class StudentController {
 
 	@GetMapping
 	@PreAuthorize("hasAuthority('STUDENT_READ')")
-	public List<StudentResponse> list() {
-		return studentService.listAll();
+	public StudentPageResponse list(
+			@PageableDefault(size = 20, sort = "studentCode") Pageable pageable
+	) {
+		return studentService.listPage(pageable);
 	}
 
 	@PostMapping

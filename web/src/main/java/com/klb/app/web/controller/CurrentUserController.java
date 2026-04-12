@@ -1,7 +1,7 @@
 package com.klb.app.web.controller;
 
 import com.klb.app.common.dto.UserSummaryResponse;
-import com.klb.app.security.profile.UserProfileReadService;
+import com.klb.app.security.service.UserProfileReadService;
 import com.klb.app.security.user.AppUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

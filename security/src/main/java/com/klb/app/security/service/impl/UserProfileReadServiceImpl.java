@@ -1,12 +1,14 @@
-package com.klb.app.security.profile;
+package com.klb.app.security.service.impl;
 
 import com.klb.app.common.dto.UserSummaryResponse;
+import com.klb.app.security.service.UserProfileReadService;
 import com.klb.app.security.user.AppUserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserProfileReadService {
+public class UserProfileReadServiceImpl implements UserProfileReadService {
 
+	@Override
 	public UserSummaryResponse summarize(AppUserDetails user) {
 		var s = user.snapshot();
 		return new UserSummaryResponse(

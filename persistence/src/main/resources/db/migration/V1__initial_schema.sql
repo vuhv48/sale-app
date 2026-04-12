@@ -1,11 +1,13 @@
 -- =============================================================================
--- Schema ban đầu (gộp từ các migration cũ V1–V7).
+-- Schema ban đầu (gộp từ các migration cũ V1–V7 + cột enabled trên permissions/roles).
 -- Dùng với CSDL mới hoặc sau khi DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+-- Khóa chính / khóa ngoại: UUID (PostgreSQL gen_random_uuid).
 -- =============================================================================
 
 CREATE TABLE permissions (
-    id          BIGSERIAL PRIMARY KEY,
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code        VARCHAR(128) NOT NULL UNIQUE,
+    enabled     BOOLEAN      NOT NULL DEFAULT TRUE,
     is_deleted  BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by  VARCHAR(255),
@@ -14,8 +16,9 @@ CREATE TABLE permissions (
 );
 
 CREATE TABLE roles (
-    id          BIGSERIAL PRIMARY KEY,
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code        VARCHAR(64) NOT NULL UNIQUE,
+    enabled     BOOLEAN      NOT NULL DEFAULT TRUE,
     is_deleted  BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by  VARCHAR(255),
@@ -24,7 +27,7 @@ CREATE TABLE roles (
 );
 
 CREATE TABLE users (
-    id              BIGSERIAL PRIMARY KEY,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username        VARCHAR(64)  NOT NULL UNIQUE,
     password_hash   VARCHAR(255) NOT NULL,
     enabled         BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -37,8 +40,8 @@ CREATE TABLE users (
 );
 
 CREATE TABLE user_roles (
-    user_id     BIGINT       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    role_id     BIGINT       NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    role_id     UUID NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
     is_deleted  BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by  VARCHAR(255),
@@ -48,8 +51,8 @@ CREATE TABLE user_roles (
 );
 
 CREATE TABLE role_permissions (
-    role_id       BIGINT       NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
-    permission_id BIGINT       NOT NULL REFERENCES permissions (id) ON DELETE CASCADE,
+    role_id       UUID NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
+    permission_id UUID NOT NULL REFERENCES permissions (id) ON DELETE CASCADE,
     is_deleted    BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by    VARCHAR(255),
@@ -59,8 +62,8 @@ CREATE TABLE role_permissions (
 );
 
 CREATE TABLE user_permissions (
-    user_id       BIGINT       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    permission_id BIGINT       NOT NULL REFERENCES permissions (id) ON DELETE CASCADE,
+    user_id       UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    permission_id UUID NOT NULL REFERENCES permissions (id) ON DELETE CASCADE,
     is_deleted    BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by    VARCHAR(255),
@@ -70,7 +73,7 @@ CREATE TABLE user_permissions (
 );
 
 CREATE TABLE students (
-    id            BIGSERIAL PRIMARY KEY,
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_code  VARCHAR(32)  NOT NULL UNIQUE,
     full_name     VARCHAR(255) NOT NULL,
     is_deleted    BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -81,8 +84,8 @@ CREATE TABLE students (
 );
 
 CREATE TABLE refresh_tokens (
-    id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     token_hash  VARCHAR(64)  NOT NULL UNIQUE,
     expires_at  TIMESTAMPTZ  NOT NULL,
     revoked     BOOLEAN      NOT NULL DEFAULT FALSE,

@@ -19,6 +19,11 @@
 			<groupId>com.klb</groupId>
 			<artifactId>web</artifactId>
 		</dependency>
+		<!-- Bắt buộc trên classpath module chạy main: IntelliJ đôi khi không gộp transitive Tomcat từ module web → thiếu jakarta.servlet.Filter -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>com.klb</groupId>
 			<artifactId>batch</artifactId>

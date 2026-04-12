@@ -1,7 +1,7 @@
 package com.klb.app.web.controller;
 
-import com.klb.app.application.auth.AccessRefreshResult;
-import com.klb.app.application.auth.AuthAccountService;
+import com.klb.app.application.service.auth.AccessRefreshResult;
+import com.klb.app.application.service.auth.AuthAccountService;
 import com.klb.app.security.user.AppUserDetails;
 import com.klb.app.web.dto.ChangePasswordRequest;
 import com.klb.app.web.dto.LoginRequest;

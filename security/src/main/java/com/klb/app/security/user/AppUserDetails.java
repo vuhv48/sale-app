@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public record AppUserDetails(UserSecuritySnapshot snapshot) implements UserDetails {
 
@@ -38,7 +39,7 @@ public record AppUserDetails(UserSecuritySnapshot snapshot) implements UserDetai
 		return snapshot.enabled();
 	}
 
-	public Long getId() {
+	public UUID getId() {
 		return snapshot.id();
 	}
 }

@@ -9,6 +9,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Entity
@@ -16,9 +18,12 @@ import lombok.Setter;
 public class PermissionEntity extends BaseAuditableEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
 	@Column(nullable = false, unique = true, length = 128)
 	private String code;
+
+	@Column(nullable = false)
+	private boolean enabled = true;
 }

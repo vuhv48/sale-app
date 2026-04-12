@@ -15,6 +15,7 @@ import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,11 +24,14 @@ import java.util.Set;
 public class RoleEntity extends BaseAuditableEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
 	@Column(nullable = false, unique = true, length = 64)
 	private String code;
+
+	@Column(nullable = false)
+	private boolean enabled = true;
 
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(

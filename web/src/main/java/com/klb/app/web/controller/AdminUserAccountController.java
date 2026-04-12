@@ -1,6 +1,6 @@
 package com.klb.app.web.controller;
 
-import com.klb.app.application.auth.AuthAccountService;
+import com.klb.app.application.service.auth.AuthAccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

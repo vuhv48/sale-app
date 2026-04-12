@@ -15,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +41,7 @@ public class JwtService {
 		}
 	}
 
-	public String generateAccessToken(UserDetails user, Long userId) {
+	public String generateAccessToken(UserDetails user, UUID userId) {
 		Instant now = Instant.now();
 		Instant exp = now.plusSeconds(properties.expirationSeconds());
 		String authorities = user.getAuthorities().stream()
@@ -51,7 +52,7 @@ public class JwtService {
 				.issuer(properties.issuer())
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(exp))
-				.claim("uid", userId)
+				.claim("uid", userId.toString())
 				.claim("authorities", authorities)
 				.signWith(signingKey)
 				.compact();

@@ -1,13 +1,12 @@
 package com.klb.app.batch.student;
 
-import com.klb.app.persistence.entity.Student;
-import com.klb.app.persistence.repository.StudentRepository;
+import com.klb.app.application.service.student.ImportedStudentRef;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.infrastructure.item.data.RepositoryItemWriter;
+import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.LineMapper;
 import org.springframework.batch.infrastructure.item.file.mapping.DefaultLineMapper;
@@ -45,12 +44,14 @@ public class StudentImportJobConfig {
 		return mapper;
 	}
 
+	/**
+	 * Không ghi thêm DB: {@link StudentImportService} đã persist trong processor.
+	 * Writer no-op giữ đúng mô hình chunk của Spring Batch.
+	 */
 	@Bean
-	public RepositoryItemWriter<Student> studentItemWriter(StudentRepository studentRepository) {
-		// Spring Batch 6+: repository bắt buộc truyền vào constructor.
-		RepositoryItemWriter<Student> writer = new RepositoryItemWriter<>(studentRepository);
-		writer.setMethodName("save");
-		return writer;
+	public ItemWriter<ImportedStudentRef> studentImportAckWriter() {
+		return chunk -> {
+		};
 	}
 
 	@Bean
@@ -59,13 +60,13 @@ public class StudentImportJobConfig {
 			PlatformTransactionManager transactionManager,
 			FlatFileItemReader<StudentCsvLine> studentCsvReader,
 			StudentImportItemProcessor studentImportItemProcessor,
-			RepositoryItemWriter<Student> studentItemWriter
+			ItemWriter<ImportedStudentRef> studentImportAckWriter
 	) {
 		return new StepBuilder("studentImportStep", jobRepository)
-				.<StudentCsvLine, Student>chunk(10, transactionManager)
+				.<StudentCsvLine, ImportedStudentRef>chunk(10, transactionManager)
 				.reader(studentCsvReader)
 				.processor(studentImportItemProcessor)
-				.writer(studentItemWriter)
+				.writer(studentImportAckWriter)
 				.build();
 	}
 

@@ -23,6 +23,7 @@
 			<groupId>com.klb</groupId>
 			<artifactId>security</artifactId>
 		</dependency>
+		<!-- Đã gồm spring-boot-starter-tomcat (jakarta.servlet.*). Tomcat thêm trực tiếp ở bootstrap để IDE luôn đưa lên classpath khi chạy AppApplication. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>

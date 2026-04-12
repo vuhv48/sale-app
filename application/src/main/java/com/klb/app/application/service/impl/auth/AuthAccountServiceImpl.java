@@ -1,5 +1,7 @@
-package com.klb.app.application.auth;
+package com.klb.app.application.service.impl.auth;
 
+import com.klb.app.application.service.auth.AccessRefreshResult;
+import com.klb.app.application.service.auth.AuthAccountService;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
 import com.klb.app.domain.security.LoadUserForSecurityPort;
@@ -23,12 +25,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AuthAccountService {
+public class AuthAccountServiceImpl implements AuthAccountService {
 
 	private static final SecureRandom RANDOM = new SecureRandom();
+	private static final String DEFAULT_SELF_REGISTER_ROLE = "USER";
 
 	private final JwtService jwtService;
 	private final JwtProperties jwtProperties;
@@ -38,8 +42,7 @@ public class AuthAccountService {
 	private final RoleEntityRepository roleEntityRepository;
 	private final PasswordEncoder passwordEncoder;
 
-	private static final String DEFAULT_SELF_REGISTER_ROLE = "USER";
-
+	@Override
 	@Transactional
 	public AccessRefreshResult register(String username, String rawPassword) {
 		String u = username.trim();
@@ -49,7 +52,7 @@ public class AuthAccountService {
 		if (userAccountRepository.existsByUsername(u)) {
 			throw new DomainException(ErrorStatus.USERNAME_TAKEN, ErrorStatus.USERNAME_TAKEN.defaultMessage());
 		}
-		RoleEntity userRole = roleEntityRepository.findByCode(DEFAULT_SELF_REGISTER_ROLE)
+		RoleEntity userRole = roleEntityRepository.findByCodeAndIsDeletedFalseAndEnabledTrue(DEFAULT_SELF_REGISTER_ROLE)
 				.orElseThrow(() -> new DomainException(
 						ErrorStatus.ILLEGAL_STATE,
 						"Chưa cấu hình role USER trong CSDL. Chạy migration Flyway hoặc rbac_seed."));
@@ -65,6 +68,7 @@ public class AuthAccountService {
 		return issueTokens(new AppUserDetails(snap));
 	}
 
+	@Override
 	@Transactional
 	public AccessRefreshResult issueTokens(AppUserDetails principal) {
 		String access = jwtService.generateAccessToken(principal, principal.getId());
@@ -76,6 +80,7 @@ public class AuthAccountService {
 				jwtProperties.refreshExpirationSeconds());
 	}
 
+	@Override
 	@Transactional
 	public AccessRefreshResult rotateWithRefreshToken(String rawRefreshToken) {
 		if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
@@ -110,9 +115,10 @@ public class AuthAccountService {
 				jwtProperties.refreshExpirationSeconds());
 	}
 
+	@Override
 	@Transactional
-	public void changePassword(Long userId, String currentPassword, String newPassword) {
-		UserAccount u = userAccountRepository.findById(userId)
+	public void changePassword(UUID userId, String currentPassword, String newPassword) {
+		UserAccount u = userAccountRepository.findActiveById(userId)
 				.orElseThrow(() -> new DomainException(ErrorStatus.USER_NOT_FOUND, ErrorStatus.USER_NOT_FOUND.defaultMessage()));
 		if (!passwordEncoder.matches(currentPassword, u.getPasswordHash())) {
 			throw new DomainException(ErrorStatus.PASSWORD_MISMATCH, ErrorStatus.PASSWORD_MISMATCH.defaultMessage());
@@ -122,6 +128,7 @@ public class AuthAccountService {
 		refreshTokenRepository.revokeAllActiveForUser(userId);
 	}
 
+	@Override
 	@Transactional
 	public void setUserEnabledByUsername(String username, boolean enabled) {
 		UserAccount u = userAccountRepository.findByUsername(username.trim())
@@ -133,7 +140,7 @@ public class AuthAccountService {
 		}
 	}
 
-	private String createAndPersistRefreshToken(Long userId) {
+	private String createAndPersistRefreshToken(UUID userId) {
 		byte[] rnd = new byte[32];
 		RANDOM.nextBytes(rnd);
 		String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(rnd);

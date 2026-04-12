@@ -4,8 +4,9 @@ import com.klb.app.persistence.entity.PermissionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.UUID;
 
-public interface PermissionEntityRepository extends JpaRepository<PermissionEntity, Long> {
+public interface PermissionEntityRepository extends JpaRepository<PermissionEntity, UUID> {
 
-	Optional<PermissionEntity> findByCode(String code);
+	Optional<PermissionEntity> findByCodeAndIsDeletedFalseAndEnabledTrue(String code);
 }

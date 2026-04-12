@@ -1,4 +1,4 @@
-package com.klb.app.application.auth;
+package com.klb.app.application.service.auth;
 
 /**
  * Cặp JWT access + refresh sau login hoặc sau refresh.

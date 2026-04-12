@@ -22,4 +22,24 @@ class ModuleArchitectureTest {
 	static final ArchRule securityMustNotDependOnPersistence = noClasses()
 			.that().resideInAPackage("..security..")
 			.should().dependOnClassesThat().resideInAPackage("..persistence..");
+
+	@ArchTest
+	static final ArchRule applicationMustNotDependOnWeb = noClasses()
+			.that().resideInAPackage("..application..")
+			.should().dependOnClassesThat().resideInAPackage("..web..");
+
+	@ArchTest
+	static final ArchRule webMustNotDependOnApplicationServiceImpl = noClasses()
+			.that().resideInAPackage("..web..")
+			.should().dependOnClassesThat().resideInAPackage("..application.service.impl..");
+
+	@ArchTest
+	static final ArchRule batchMustNotDependOnWeb = noClasses()
+			.that().resideInAPackage("..batch..")
+			.should().dependOnClassesThat().resideInAPackage("..web..");
+
+	@ArchTest
+	static final ArchRule domainMustNotDependOnPersistence = noClasses()
+			.that().resideInAPackage("..domain..")
+			.should().dependOnClassesThat().resideInAPackage("..persistence..");
 }

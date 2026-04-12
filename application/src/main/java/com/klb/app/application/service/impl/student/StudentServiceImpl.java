@@ -1,30 +1,40 @@
-package com.klb.app.application.student;
+package com.klb.app.application.service.impl.student;
 
+import com.klb.app.application.service.student.StudentPageResponse;
+import com.klb.app.application.service.student.StudentResponse;
+import com.klb.app.application.service.student.StudentService;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
 import com.klb.app.domain.student.StudentCode;
 import com.klb.app.persistence.entity.Student;
 import com.klb.app.persistence.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
-public class StudentService {
+public class StudentServiceImpl implements StudentService {
 
 	private final StudentRepository studentRepository;
 
+	@Override
 	@Transactional(readOnly = true)
-	public List<StudentResponse> listAll() {
-		return studentRepository.findAllByOrderByStudentCodeAsc().stream()
-				.map(StudentService::toResponse)
-				.toList();
+	public StudentPageResponse listPage(Pageable pageable) {
+		Page<Student> page = studentRepository.findAllActiveOrderByStudentCodeAsc(pageable);
+		return new StudentPageResponse(
+				page.getContent().stream().map(StudentServiceImpl::toResponse).toList(),
+				page.getNumber(),
+				page.getSize(),
+				page.getTotalElements(),
+				page.getTotalPages(),
+				page.isFirst(),
+				page.isLast());
 	}
 
+	@Override
 	@Transactional
 	public StudentResponse create(String studentCode, String fullName) {
 		StudentCode code = StudentCode.parse(studentCode);
@@ -36,23 +46,6 @@ public class StudentService {
 		s.setFullName(fullName.trim());
 		studentRepository.save(s);
 		return toResponse(s);
-	}
-
-	/**
-	 * Dùng cho batch: tạo nếu chưa có, trùng mã thì bỏ qua dòng (processor trả {@code null}).
-	 */
-	@Transactional
-	public Optional<Student> tryImportStudent(String studentCode, String fullName) {
-		Optional<StudentCode> codeOpt = StudentCode.tryParseForImport(studentCode);
-		if (codeOpt.isEmpty() || studentRepository.existsByStudentCode(codeOpt.get().value())) {
-			return Optional.empty();
-		}
-		StudentCode code = codeOpt.get();
-		Student s = new Student();
-		s.setStudentCode(code.value());
-		s.setFullName(fullName.trim());
-		studentRepository.save(s);
-		return Optional.of(s);
 	}
 
 	private static StudentResponse toResponse(Student s) {
