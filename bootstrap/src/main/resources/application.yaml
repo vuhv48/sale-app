@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: app-platform
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sale_app
+    username: postgres
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+
+app:
+  security:
+    permit-all:
+      - method: POST
+        path: /api/auth/login
+      - method: POST
+        path: /api/auth/register
+      - method: POST
+        path: /api/auth/refresh
+      - method: GET
+        path: /api/health
+      - method: GET
+        path: /actuator/health
+    jwt:
+      secret: ${JWT_SECRET:dev-only-change-in-production-min-32-chars-ok}
+      issuer: app-platform
+      expiration-seconds: 86400
+      refresh-expiration-seconds: 604800
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
