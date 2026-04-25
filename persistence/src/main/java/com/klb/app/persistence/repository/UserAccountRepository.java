@@ -43,8 +43,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 	@Query(
 			value = """
 					select distinct r.code
-					from user_roles ur
-					inner join roles r on r.id = ur.role_id
+					from authz.user_roles ur
+					inner join authz.roles r on r.id = ur.role_id
 					where ur.user_id = :userId
 					  and ur.is_deleted = false
 					  and r.is_deleted = false
@@ -57,10 +57,10 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 	@Query(
 			value = """
 					select distinct p.code
-					from user_roles ur
-					inner join roles r on r.id = ur.role_id and r.is_deleted = false
-					inner join role_permissions rp on rp.role_id = r.id and rp.is_deleted = false
-					inner join permissions p on p.id = rp.permission_id and p.is_deleted = false
+					from authz.user_roles ur
+					inner join authz.roles r on r.id = ur.role_id and r.is_deleted = false
+					inner join authz.role_permissions rp on rp.role_id = r.id and rp.is_deleted = false
+					inner join authz.permissions p on p.id = rp.permission_id and p.is_deleted = false
 					where ur.user_id = :userId
 					  and ur.is_deleted = false
 					""",
@@ -70,11 +70,24 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 	@Query(
 			value = """
 					select distinct p.code
-					from user_permissions up
-					inner join permissions p on p.id = up.permission_id and p.is_deleted = false and p.enabled = true
+					from authz.user_permissions up
+					inner join authz.permissions p on p.id = up.permission_id and p.is_deleted = false and p.enabled = true
 					where up.user_id = :userId
 					  and up.is_deleted = false
+					  and up.effect_type = 'GRANT'
 					""",
 			nativeQuery = true)
-	List<String> findActiveDirectPermissionCodesByUserId(@Param("userId") UUID userId);
+	List<String> findActiveDirectGrantedPermissionCodesByUserId(@Param("userId") UUID userId);
+
+	@Query(
+			value = """
+					select distinct p.code
+					from authz.user_permissions up
+					inner join authz.permissions p on p.id = up.permission_id and p.is_deleted = false and p.enabled = true
+					where up.user_id = :userId
+					  and up.is_deleted = false
+					  and up.effect_type = 'DENY'
+					""",
+			nativeQuery = true)
+	List<String> findActiveDirectDeniedPermissionCodesByUserId(@Param("userId") UUID userId);
 }

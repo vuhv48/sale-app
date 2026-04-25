@@ -43,6 +43,7 @@ public class UserAccount extends BaseAuditableEntity {
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 			name = "user_roles",
+			schema = "authz",
 			joinColumns = @JoinColumn(name = "user_id"),
 			inverseJoinColumns = @JoinColumn(name = "role_id")
 	)
@@ -51,6 +52,7 @@ public class UserAccount extends BaseAuditableEntity {
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 			name = "user_permissions",
+			schema = "authz",
 			joinColumns = @JoinColumn(name = "user_id"),
 			inverseJoinColumns = @JoinColumn(name = "permission_id")
 	)

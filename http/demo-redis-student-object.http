@@ -1,0 +1,20 @@
+### Dung dung: /api/demo/redis-student-object  (co chu "demo" — KHONG phai /api/redis-student-object)
+@host = http://localhost:8080
+
+### Luu object demo len Redis (JSON + index ma SV)
+POST {{host}}/api/demo/redis-student-object
+Content-Type: application/json
+
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "studentCode": "SV01",
+  "fullName": "Nguyen Van A"
+}
+
+###
+### Doc theo id (GET sau khi POST)
+GET {{host}}/api/demo/redis-student-object/550e8400-e29b-41d4-a716-446655440000
+
+###
+### Doc theo ma SV (qua index redis)
+GET {{host}}/api/demo/redis-student-object/by-code/SV01

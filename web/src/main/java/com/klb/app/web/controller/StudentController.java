@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,7 +24,6 @@ public class StudentController {
 	private final StudentService studentService;
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('STUDENT_READ')")
 	public StudentPageResponse list(
 			@PageableDefault(size = 20, sort = "studentCode") Pageable pageable
 	) {
@@ -34,7 +32,6 @@ public class StudentController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	@PreAuthorize("hasAuthority('STUDENT_CREATE')")
 	public StudentResponse create(@Valid @RequestBody CreateStudentRequest body) {
 		return studentService.create(body.studentCode(), body.fullName());
 	}

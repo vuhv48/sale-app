@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "permissions")
+@Table(name = "permissions", schema = "authz")
 public class PermissionEntity extends BaseAuditableEntity {
 
 	@Id
@@ -23,6 +23,12 @@ public class PermissionEntity extends BaseAuditableEntity {
 
 	@Column(nullable = false, unique = true, length = 128)
 	private String code;
+
+	@Column(name = "permission_group", nullable = false, length = 64)
+	private String permissionGroup;
+
+	@Column(name = "action_code", nullable = false, length = 32)
+	private String actionCode;
 
 	@Column(nullable = false)
 	private boolean enabled = true;

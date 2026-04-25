@@ -34,8 +34,11 @@ public class LoadUserForSecurityJpaAdapter implements LoadUserForSecurityPort {
 		UUID id = c.getId();
 		var roleCodes = new LinkedHashSet<>(users.findActiveRoleCodesByUserId(id));
 		var perms = new LinkedHashSet<>(users.findActivePermissionCodesViaRolesByUserId(id));
-		for (String p : users.findActiveDirectPermissionCodesByUserId(id)) {
+		for (String p : users.findActiveDirectGrantedPermissionCodesByUserId(id)) {
 			perms.add(p);
+		}
+		for (String p : users.findActiveDirectDeniedPermissionCodesByUserId(id)) {
+			perms.remove(p);
 		}
 		return new UserSecuritySnapshot(
 				id,

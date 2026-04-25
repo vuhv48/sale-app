@@ -25,6 +25,9 @@
 		<module>security</module>
 		<module>batch</module>
 		<module>web</module>
+		<module>redis</module>
+		<module>kafka</module>
+		<module>mongodb</module>
 		<module>bootstrap</module>
 	</modules>
 
@@ -68,6 +71,21 @@
 			<dependency>
 				<groupId>com.klb</groupId>
 				<artifactId>web</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.klb</groupId>
+				<artifactId>redis</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.klb</groupId>
+				<artifactId>kafka</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.klb</groupId>
+				<artifactId>mongodb</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

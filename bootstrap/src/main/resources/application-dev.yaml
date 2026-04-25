@@ -1,0 +1,18 @@
+# Profile dev — may chu dev / CI tich hop (SPRING_PROFILES_ACTIVE=dev).
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sale_app}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+
+logging:
+  level:
+    root: INFO
+    com.klb.app: INFO
+
+app:
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
+  redis:
+    enabled: ${APP_REDIS_ENABLED:false}

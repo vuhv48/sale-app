@@ -1,0 +1,40 @@
+# Profile production (SPRING_PROFILES_ACTIVE=prod).
+# Bat buoc: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD, JWT_SECRET.
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.klb.app: INFO
+    org.springframework.security: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  shutdown: graceful
+
+app:
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
+  redis:
+    enabled: ${APP_REDIS_ENABLED:false}
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:app-platform}

@@ -29,8 +29,24 @@
 			<artifactId>batch</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>mongodb</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -61,6 +77,25 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!-- Repair checksum khi sua file migration da apply (vd. V2): ./mvnw -pl bootstrap flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/sale_app -Dflyway.user=postgres -Dflyway.password= -->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.14.1</version>
+				<configuration>
+					<locations>
+						<location>filesystem:${project.basedir}/../persistence/src/main/resources/db/migration</location>
+					</locations>
+					<baselineOnMigrate>false</baselineOnMigrate>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.7.10</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>

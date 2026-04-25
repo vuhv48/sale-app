@@ -9,6 +9,7 @@ import com.klb.app.web.dto.LoginResponse;
 import com.klb.app.web.dto.RefreshTokenRequest;
 import com.klb.app.web.dto.RegisterRequest;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,16 +31,21 @@ public class AuthController {
 
 	@PostMapping("/register")
 	public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest body) {
-		var tokens = authAccountService.register(body.username(), body.password());
+		var tokens = authAccountService.register(body.username(), body.password(), body.email());
 		return ResponseEntity.status(HttpStatus.CREATED).body(toLoginResponse(tokens));
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest body) {
+	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest body, HttpServletRequest request) {
 		var auth = authenticationManager.authenticate(
 				UsernamePasswordAuthenticationToken.unauthenticated(body.username(), body.password()));
 		var principal = (AppUserDetails) auth.getPrincipal();
 		var tokens = authAccountService.issueTokens(principal);
+		authAccountService.recordAdminLoginSuccess(
+				principal.getId(),
+				principal.getUsername(),
+				request.getRemoteAddr(),
+				request.getHeader("User-Agent"));
 		return ResponseEntity.ok(toLoginResponse(tokens));
 	}
 

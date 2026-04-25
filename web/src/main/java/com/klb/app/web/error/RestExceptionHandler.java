@@ -4,16 +4,19 @@ import com.klb.app.common.api.ApiError;
 import com.klb.app.common.api.ApiResponse;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
+import com.mongodb.MongoException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -77,6 +80,25 @@ public class RestExceptionHandler {
 		return respond(ErrorStatus.DATA_ACCESS_ERROR, ErrorStatus.DATA_ACCESS_ERROR.defaultMessage(), req);
 	}
 
+	/** Redis mat ket noi / timeout — tranh tra INTERNAL_ERROR chung chung. */
+	@ExceptionHandler(RedisSystemException.class)
+	public ResponseEntity<ApiResponse<Void>> redisSystem(RedisSystemException ex, HttpServletRequest req) {
+		String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+		log.error("[api] Redis uri={}", req.getRequestURI(), ex);
+		return respond(ErrorStatus.DATA_ACCESS_ERROR,
+				msg != null && !msg.isBlank()
+						? ("Không kết nối được Redis (kiểm tra Docker Redis và app.redis.enabled): " + msg)
+						: ErrorStatus.DATA_ACCESS_ERROR.defaultMessage(),
+				req);
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> httpMessageNotReadable(HttpMessageNotReadableException ex,
+			HttpServletRequest req) {
+		log.warn("[api] Invalid request body uri={}", req.getRequestURI(), ex);
+		return respond(ErrorStatus.VALIDATION_ERROR, "Body JSON không hợp lệ hoặc sai kiểu (ví dụ id phải là UUID)", req);
+	}
+
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ResponseEntity<ApiResponse<Void>> illegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
 		log.warn("[api] Illegal argument uri={} msg={}", req.getRequestURI(), ex.getMessage());
@@ -94,6 +116,17 @@ public class RestExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> illegalState(IllegalStateException ex, HttpServletRequest req) {
 		log.error("[api] Illegal state uri={}", req.getRequestURI(), ex);
 		return respond(ErrorStatus.ILLEGAL_STATE, ex.getMessage(), req);
+	}
+
+	@ExceptionHandler(MongoException.class)
+	public ResponseEntity<ApiResponse<Void>> mongo(MongoException ex, HttpServletRequest req) {
+		String msg = ex.getMessage();
+		log.error("[api] MongoDB uri={}", req.getRequestURI(), ex);
+		return respond(ErrorStatus.DATA_ACCESS_ERROR,
+				msg != null && !msg.isBlank()
+						? ("MongoDB: " + msg + " — kiểm tra brew services mongodb-community, URI và app.mongodb.enabled=true (profile local).")
+						: ErrorStatus.DATA_ACCESS_ERROR.defaultMessage(),
+				req);
 	}
 
 	@ExceptionHandler(Exception.class)

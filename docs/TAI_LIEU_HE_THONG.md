@@ -1,213 +1,398 @@
-# Tài liệu hệ thống — sale-app (app-platform)
+# Tai lieu he thong - sale-app
 
-Ứng dụng **modular monolith**: **Spring Boot 4**, **Java 17**, REST API, **JWT** (access) + **refresh token** (opaque, lưu DB), **RBAC**, **PostgreSQL**, **Flyway**, **Spring Batch** (import CSV mẫu). Khóa chính trong CSDL dùng **UUID**; tài khoản và định nghĩa permission/role có cờ **`enabled`**.
+## 1) Muc tieu
 
----
+Tai lieu nay mo ta nhanh base hien tai de team co the:
+- dung dung ung dung ngay sau khi clone
+- hieu module va luong xu ly chinh
+- tra cuu API va quy trinh van hanh co ban
 
-## 1. Tổng quan kiến trúc
+Tai lieu phan quyen duoc tach rieng tai:
+- `docs/PHAN_QUYEN_HE_THONG.md`
 
-- **Một process chạy** (`bootstrap`), mã tách **theo module Maven** để dễ bảo trì và kiểm tra phụ thuộc (ArchUnit).
-- **Luồng chính:** HTTP (`web`) → use case (`application`) → DB (`persistence`); xác thực (`security`) đọc user/quyền qua **port** trong `domain`, triển khai adapter ở `persistence`.
-- **Domain** gần như không phụ thuộc Spring; **application** hiện gọi trực tiếp repository/entity JPA (lựa chọn thực dụng; có thể siết cổng sau nếu cần).
+## 2) Cong nghe chinh
 
----
+- Java 17, Spring Boot 4
+- PostgreSQL + Flyway
+- Spring Security + JWT (access token + refresh token)
+- Modular monolith theo Maven multi-module
+- Tuy chon: Redis, Kafka, MongoDB, Batch
 
-## 2. Cấu trúc module Maven
+## 3) Cau truc module
 
-| Module | Vai trò |
-|--------|---------|
-| **common** | `ApiResponse`, `ApiError`, `ErrorStatus`, `UserSummaryResponse`, exception dùng chung |
-| **domain** | Port nghiệp vụ (ví dụ `LoadUserForSecurityPort`), snapshot bảo mật (`UserSecuritySnapshot`), value object (ví dụ `StudentCode`) |
-| **persistence** | Entity JPA, repository, Flyway (`db/migration`, `R__*.sql`), adapter load user cho Security, `PostgresRoutines` (JdbcTemplate — chỗ tập trung gọi function PostgreSQL sau này) |
-| **application** | Interface service (`application.service.*`) + DTO; triển khai `@Service` trong `application.service.impl.*` |
-| **security** | Spring Security, JWT (`JwtService`), filter, `AppUserDetails`, `UserProfileReadService` |
-| **web** | Controller REST, DTO request + validation, `RestExceptionHandler` |
-| **batch** | Job Spring Batch (import sinh viên CSV — tích hợp `StudentImportService`) |
-| **bootstrap** | `AppApplication`, `application.yaml`, JAR chạy được; test ArchUnit |
+- `bootstrap`: diem chay app, config chung
+- `web`: controller + DTO request/response
+- `application`: use case/service implementation
+- `persistence`: JPA entity/repository, migration SQL
+- `security`: JWT, user details, security config
+- `domain`: port + model domain khong phu thuoc framework
+- `common`: response/error dung chung
+- `redis`, `kafka`, `mongodb`, `batch`: module ha tang/tinh nang tuy chon
 
-**Phụ thuộc chính (Maven):**
+## 4) Database va migration
 
-- `bootstrap` → `web`, `batch`, Flyway, Actuator, Tomcat (đảm bảo classpath khi chạy main từ IDE).
-- `web` → `application`, `security`, `spring-boot-starter-webmvc`, validation.
-- `application` → `domain`, `persistence`, `security`.
-- `persistence` → `domain`, JPA, Flyway, PostgreSQL (driver runtime).
-- `security` → `domain`, `common`, Spring Security, JJWT.
+Migration dang dung:
+- `V1__initial_schema.sql`: schema nen + RBAC + dynamic authz + seed dev
+- `V2__notices.sql`: bang notices
+- `V3__integration_outbox.sql`: transactional outbox
+- `V4__mail.sql`: template mail + queue mail
 
-**Quy ước gọi service:** Code ngoài tầng triển khai chỉ nên phụ thuộc **interface** trong `com.klb.app.application.service…` hoặc `com.klb.app.security.service…`. Implement nằm trong `…service.impl…`.
+Luu y:
+- He thong dung soft-delete (`is_deleted`) o nhieu bang
+- Phan quyen nam trong schema `authz`
+- Neu dung lai DB cu ma Flyway loi baseline, reset schema cho sach roi chay lai
 
-**REST vs import số lượng lớn:** `StudentService` phục vụ API (list/create), trả DTO (`StudentResponse`, `StudentPageResponse`). Batch gọi `StudentImportService#importIfAbsent` → `ImportedStudentRef` (không lộ entity JPA ra ngoài).
+## 5) Chay local
 
----
+Yeu cau:
+- JDK 17+
+- PostgreSQL local (mac dinh `sale_app`)
 
-## 3. Chạy ứng dụng
-
-### Yêu cầu
-
-- JDK **17+**
-- Maven hoặc `./mvnw`
-- PostgreSQL, database (mặc định `sale_app`)
-
-### Cấu hình
-
-`bootstrap/src/main/resources/application.yaml`: `spring.datasource.url`, `username`, `password`; giới hạn phân trang (`spring.data.web.pageable.max-page-size`, …).
-
-### Lệnh chạy
+Lenh:
 
 ```bash
 ./mvnw -pl bootstrap spring-boot:run
 ```
 
-Nếu muốn bỏ qua test compile khi build:
+Mac dinh:
+- port `8080`
+- profile `local`
+
+## 6) API chinh (tong quan)
+
+Auth:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/change-password`
+
+Nguoi dung hien tai:
+- `GET /api/users/current`
+
+Sinh vien:
+- `GET /api/students`
+- `POST /api/students`
+
+Admin user:
+- `POST /api/admin/users/{username}/lock`
+- `POST /api/admin/users/{username}/unlock`
+
+Admin authz resource:
+- `GET /api/admin/authz/resources`
+- `POST /api/admin/authz/resources`
+- `POST /api/admin/authz/roles/{roleCode}/resources/{resourceCode}`
+- `DELETE /api/admin/authz/roles/{roleCode}/resources/{resourceCode}`
+
+Batch:
+- `POST /api/batch/jobs/student-csv-import`
+
+Health/demo:
+- `GET /api/health`
+- cac endpoint demo trong `/api/demo/*`
+
+## 7) Bao mat tong quan
+
+- Tat ca request (tru permit-all) phai authenticated JWT
+- Dynamic authz check theo bang `authz.resources` + `authz.role_resources`
+- Chinh sach mac dinh:
+  - `app.authz.dynamic.default-deny=true`
+  - endpoint khong map resource se bi deny
+
+Chi tiet day du ve phan quyen:
+- xem `docs/PHAN_QUYEN_HE_THONG.md`
+
+## 8) Seed du lieu dev
+
+Tu dong seed trong `V1`:
+- role: `ADMIN`, `USER`
+- permission: `ADMIN_ACCESS`, `USER_PROFILE_READ`, `STUDENT_READ`, `STUDENT_CREATE`
+- resource mau cho student read/create
+
+Tai lieu seed tay:
+- `persistence/src/main/resources/db/manual/rbac_seed.example.sql`
+
+## 9) Ghi chu van hanh
+
+- Neu them API moi trong production, can dang ky vao `authz.resources`
+- Khuyen nghi quan ly mapping API-quyen qua quy trinh review
+- Log login admin dang ghi vao `authz.admin_login_logs` (can kiem soat role neu muon strict admin-only)
+
+# Tai lieu he thong — sale-app (app-platform)
+
+Ung dung **modular monolith** tren **Spring Boot 4** va **Java 17**: REST API, **JWT** (access) + **refresh token** (opaque, luu PostgreSQL), **RBAC**, **Flyway**, **Spring Batch** (import CSV mau), **Redis** (tuy chon), **Apache Kafka** (tuy chon). Khoa chinh CSDL kieu **UUID**; bang `permissions`, `roles`, `users` co cot **`enabled`**.
+
+---
+
+## 1. Tong quan kien truc
+
+- **Mot JVM / mot artifact runnable** (`bootstrap`); ma chia **module Maven** va **ArchUnit** giu ranh gioi package.
+- **Luong HTTP:** `web` → interface `application.service.*` → trien khai `application.service.impl.*` → `persistence` (JPA / native SQL).
+- **Bao mat:** `security` (JWT, filter, `AppUserDetails`); du lieu user/quyen lay qua **`LoadUserForSecurityPort`** trong `domain`, adapter **`LoadUserForSecurityJpaAdapter`** trong `persistence` (package `com.klb.app.persistence.security`, khac module `security`).
+- **Domain** gan nhu khong phu thuoc Spring; **application** hien dung truc tiep repository/entity JPA (co the chat che hon sau).
+
+---
+
+## 2. Cau truc module Maven
+
+| Module | Vai tro |
+|--------|---------|
+| **common** | `ApiResponse`, `ErrorStatus`, `UserSummaryResponse`, exception dung chung |
+| **domain** | Port (`LoadUserForSecurityPort`), `UserSecuritySnapshot`, value object (vd. `StudentCode`) |
+| **persistence** | Entity, repository, Flyway, adapter Security, `PostgresRoutines` (JdbcTemplate / function PostgreSQL) |
+| **application** | Service interface + DTO; `@Service` trong `service.impl`; demo Redis (`RedisCounterDemoService`) |
+| **security** | Spring Security, JWT, `AppUserDetails`, `UserProfileReadService` |
+| **redis** | Ha tang Redis: Lettuce, `StringRedisTemplate`, bean `redisJsonTemplate`, `RedisKeyFactory`, `SaleRedisAutoConfiguration` |
+| **kafka** | Ha tang Kafka: gate `SaleKafkaAutoConfiguration`, import Boot `KafkaAutoConfiguration` + `KafkaMetricsAutoConfiguration`, `KafkaTopicFactory`, `KafkaInfrastructureProperties` |
+| **web** | Controller, DTO request, `RestExceptionHandler` |
+| **batch** | Spring Batch + `StudentImportService` |
+| **bootstrap** | `AppApplication`, `application.yaml`, fat JAR; test H2 + ArchUnit |
+
+**Phu thuoc chinh:**
+
+- `bootstrap` → `web`, `batch`, **`redis`**, **`kafka`**, Flyway, Actuator, Tomcat.
+- `web` → `application`, `security`, WebMVC, validation.
+- `application` → `domain`, `persistence`, `security`, **`redis`** (chua phu thuoc **`kafka`**; them module `kafka` vao `application` khi can `KafkaTemplate` / listener trong tang use-case).
+- `persistence` → `domain`, JPA, Flyway, PostgreSQL (runtime).
+- `security` → `domain`, `common`, Spring Security, JJWT.
+- **`redis`** → starter Data Redis + JSON (khong phu thuoc `web` / `persistence` / `application` / `batch`).
+- **`kafka`** → `spring-boot-starter-kafka` (khong phu thuoc `web` / `persistence` / `application` / `batch`).
+
+**Quy uoc:** Code ben ngoai tang trien khai chi import **`com.klb.app.application.service...`** hoac **`com.klb.app.security.service...`**; implement trong **`...service.impl...`**.
+
+---
+
+## 3. Chay ung dung
+
+### Yeu cau
+
+- JDK **17+**
+- `./mvnw` hoac Maven
+- PostgreSQL, database mac dinh **`sale_app`**
+
+### Cau hinh chinh
+
+File **`bootstrap/src/main/resources/application.yaml`:**
+
+- `spring.datasource.*`, JPA, Flyway
+- `spring.data.redis.*` (host / port / timeout — dung khi bat Redis)
+- `spring.kafka.*` (bootstrap, producer/consumer String serializer, acks, idempotence, listener `manual_immediate` — dung khi bat Kafka)
+- `spring.autoconfigure.exclude`: `DataRedisAutoConfiguration`, `KafkaAutoConfiguration`, `KafkaMetricsAutoConfiguration`
+- `app.redis.enabled`, `app.redis.key-prefix`
+- `app.kafka.enabled`, `app.kafka.topic-prefix`
+- `app.security.*` (JWT, permit-all)
+- Phan trang: `spring.data.web.pageable.*`
+
+### Lenh
+
+```bash
+./mvnw -pl bootstrap spring-boot:run
+```
+
+Bo qua compile test:
 
 ```bash
 ./mvnw -pl bootstrap spring-boot:run -Dmaven.test.skip=true
 ```
 
-Cổng mặc định **8080** (trừ khi đổi `server.port`).
+Cong mac dinh **8080**.
 
-### Biến môi trường (production)
+### Bien moi truong (goi y)
 
-| Biến | Ý nghĩa |
+| Bien | Y nghia |
 |------|---------|
-| `JWT_SECRET` | Bí mật ký JWT — **bắt buộc đổi** khi triển khai thật (dev có default trong YAML) |
+| `JWT_SECRET` | Ky JWT — **doi tren production** |
+| `APP_REDIS_ENABLED` | `true` / `false` — bat Redis (mac dinh false) |
+| `REDIS_HOST`, `REDIS_PORT` | Ket noi Redis (mac dinh localhost:6379) |
+| `APP_KAFKA_ENABLED` | `true` / `false` — bat Kafka beans (mac dinh false) |
+| `KAFKA_BOOTSTRAP_SERVERS` | Broker (mac dinh localhost:9092) |
+| `KAFKA_CLIENT_ID` | Client id producer/consumer (mac dinh `spring.application.name`) |
+| `KAFKA_CONSUMER_GROUP_ID` | Group consumer (mac dinh `{spring.application.name}-consumer`) |
+| `KAFKA_PRODUCER_RETRIES` | So lan retry producer (mac dinh 3) |
 
 ---
 
-## 4. Cơ sở dữ liệu và Flyway
+## 4. Redis (tuy chon)
 
-### Vị trí script
+### Co che
 
-- **Versioned:** `persistence/src/main/resources/db/migration/V1__initial_schema.sql` — DDL đầy đủ + **seed dev** (RBAC, user mẫu, sinh viên, một refresh token test).
-- **Repeatable:** `R__postgresql_functions.sql` — gom `CREATE OR REPLACE FUNCTION` (chạy lại khi đổi nội dung file).
-- **Tay (không Flyway):** `db/manual/rbac_seed.example.sql` — mẫu nạp RBAC qua `psql`/tool.
+- **`spring.autoconfigure.exclude`:** `org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration` (Spring Boot 4) — Spring khong tu tao client mac dinh.
+- Khi **`app.redis.enabled=true`** hoac **`APP_REDIS_ENABLED=true`**, module **`redis`** nap **`SaleRedisAutoConfiguration`**: **Lettuce**, **`StringRedisTemplate`**, **`redisJsonTemplate`** (JSON), **`RedisKeyFactory`** (tien to tu `app.redis.key-prefix`).
+- Service co the inject **`ObjectProvider<StringRedisTemplate>`** / **`ObjectProvider<RedisKeyFactory>`** de app van chay khi Redis tat.
 
-### Đặc điểm schema (tóm tắt)
+### Demo
 
-- **Khóa chính / khóa ngoại:** kiểu **UUID**, mặc định `gen_random_uuid()` trên các bảng chính.
-- **Soft delete:** cột `is_deleted` trên các bảng nghiệp vụ và bảng nối RBAC (`user_roles`, `role_permissions`, `user_permissions`).
-- **Bật/tắt định nghĩa RBAC:** bảng **`permissions`** và **`roles`** có thêm **`enabled`** (khác `is_deleted`: vẫn giữ bản ghi catalog).
-- **Tài khoản:** bảng `users` có **`enabled`** (Spring Security — khóa/mở user).
+- **`GET /api/demo/redis-counter`** (permit-all): moi lan goi **INCR** key `app-platform:demo:global-counter`, TTL ~24 gio.
+- Response: `{"redisAvailable": true|false, "value": <so hoac null}`.
 
-### Reset môi trường dev
+Vi du:
 
-Khi đổi migration hoặc cần schema sạch: xóa database và tạo lại, hoặc:
-
-`DROP SCHEMA public CASCADE; CREATE SCHEMA public;` (+ cấp quyền user kết nối).
-
-Sau đó chạy app — Flyway áp lại từ đầu.
-
-### Dữ liệu mẫu (dev)
-
-- User **`admin`** / **`user`** — mật khẩu: **`password`** (BCrypt trong SQL).
-- Refresh token thử (admin): chuỗi thô **`dev-test-refresh-token-001`** (trong DB là SHA-256 hex; sau khi refresh thành công token bị rotate, không dùng lại).
-
----
-
-## 5. Bảo mật
-
-### 5.1. JWT (access token)
-
-- Header: `Authorization: Bearer <accessToken>`.
-- Claims tiêu biểu:
-  - `sub`: username
-  - `uid`: **chuỗi UUID** của user (client parse `UUID` từ string nếu cần)
-  - `authorities`: permission + role (role có prefix `ROLE_` trong `AppUserDetails`)
-- TTL: `app.security.jwt.expiration-seconds`
-
-### 5.2. Refresh token
-
-- Không phải JWT: chuỗi ngẫu nhiên; client giữ bản gốc, server lưu **SHA-256 hex** trong `refresh_tokens`.
-- `POST /api/auth/refresh` — mỗi lần thành công **xoay** refresh (revoke bản cũ, cấp cặp token mới).
-- Đổi mật khẩu hoặc khóa user (admin) → revoke refresh theo logic `AuthAccountService`.
-
-### 5.3. RBAC và cách tính quyền hiệu lực
-
-- **Permission** (ví dụ): `ADMIN_ACCESS`, `USER_PROFILE_READ`, `STUDENT_READ`, `STUDENT_CREATE`.
-- **Role** (ví dụ): `ADMIN`, `USER` — gắn permission qua `role_permissions`; user gắn role qua `user_roles`; quyền trực tiếp qua `user_permissions`.
-- Khi build snapshot cho Security, persistence dùng **native SQL** có điều kiện:
-  - `is_deleted = false` trên user, role, permission và **cả các bảng nối**;
-  - `enabled = true` trên **role** và **permission** (định nghĩa đang bật).
-- Đăng ký tự phục vụ: gán role `USER` chỉ khi `findByCodeAndIsDeletedFalseAndEnabledTrue` tìm thấy role.
-
-### 5.4. Permit-all (không cần JWT)
-
-Cấu hình `app.security.permit-all` trong `application.yaml` (method + path), ví dụ: login, register, refresh, `/api/health`, `/actuator/health`. Các route còn lại mặc định **cần authenticated**.
-
----
-
-## 6. API HTTP
-
-**Base:** `http://localhost:8080` (tuỳ cổng). Body JSON dùng `Content-Type: application/json`.
-
-### 6.1. Auth
-
-| Method | Path | Auth | Mô tả |
-|--------|------|------|--------|
-| POST | `/api/auth/register` | Không | Đăng ký; role `USER`, `data_scope` `OWN`; **201** + token |
-| POST | `/api/auth/login` | Không | Đăng nhập; **200** + token |
-| POST | `/api/auth/refresh` | Không | Body `{ "refreshToken": "..." }`; **200** + token mới |
-| POST | `/api/auth/change-password` | Bearer JWT | Body `currentPassword`, `newPassword`; **204**; revoke mọi refresh của user |
-
-Validation đăng ký: `username` 3–64 ký tự, `password` 8–128 ký tự.
-
-Response login / register / refresh (ví dụ):
-
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "...",
-  "tokenType": "Bearer",
-  "expiresInSeconds": 86400,
-  "refreshExpiresInSeconds": 604800
-}
+```bash
+docker run -d -p 6379:6379 redis:7-alpine
+APP_REDIS_ENABLED=true ./mvnw -pl bootstrap spring-boot:run
+curl -s http://localhost:8080/api/demo/redis-counter
 ```
 
-*(Một số endpoint auth trả object trực tiếp, không bọc `ApiResponse`.)*
+---
 
-### 6.2. User hiện tại
+## 5. Kafka (tuy chon)
 
-| Method | Path | Auth | Mô tả |
-|--------|------|------|--------|
-| GET | `/api/users/current` | Bearer JWT | `id` (**UUID**), `username`, `dataScope`, `roles`, `permissions` |
+### Co che
 
-### 6.3. Sinh viên
+- **`spring.autoconfigure.exclude`:** `org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration`, `org.springframework.boot.kafka.autoconfigure.metrics.KafkaMetricsAutoConfiguration` — khong dang ky Kafka khi chua bat.
+- Khi **`app.kafka.enabled=true`** hoac **`APP_KAFKA_ENABLED=true`**, module **`kafka`** nap **`SaleKafkaAutoConfiguration`**: `@Import` lai hai lop auto-config tren + bean **`KafkaTopicFactory`** (ten topic: `app.kafka.topic-prefix` + cac doan `.segment...`).
+- Cau hinh broker / serializer / consumer: **`spring.kafka.*`** trong YAML (mac dinh **String** serializer/deserializer; doi sang JSON/Avro trong YAML khi can).
 
-| Method | Path | Quyền | Mô tả |
-|--------|------|--------|--------|
-| GET | `/api/students` | `STUDENT_READ` | Phân trang: `page`, `size`, `sort`; mặc định `size=20`, sort `studentCode`; `size` tối đa theo cấu hình (vd. 100) |
-| POST | `/api/students` | `STUDENT_CREATE` | Body `studentCode`, `fullName`; **201** |
+### Goi y tich hop code
 
-Ví dụ: `GET /api/students?page=0&size=10&sort=studentCode,asc`
+- Them dependency **`kafka`** vao module **`application`** (hoac module publish event), inject **`KafkaTemplate`**, dung **`KafkaTopicFactory.topic("domain", "event")`** de dat ten topic dong bo.
+- **`@KafkaListener`:** dat o tang phu hop (thuong `application` hoac module rieng), `ack-mode` manual da cau hinh trong YAML.
 
-Response phân trang: `content` (mảng có `id` kiểu UUID), `page`, `size`, `totalElements`, `totalPages`, `first`, `last`.
+Vi du chay local (can broker):
 
-### 6.4. Admin — tài khoản
-
-| Method | Path | Quyền | Mô tả |
-|--------|------|--------|--------|
-| POST | `/api/admin/users/{username}/lock` | `ADMIN_ACCESS` | `users.enabled = false`, revoke refresh |
-| POST | `/api/admin/users/{username}/unlock` | `ADMIN_ACCESS` | `users.enabled = true` |
-
-### 6.5. Batch
-
-| Method | Path | Quyền | Mô tả |
-|--------|------|--------|--------|
-| POST | `/api/batch/jobs/student-csv-import` | `ADMIN_ACCESS` | Kích hoạt job import CSV mẫu |
-
-### 6.6. Health & demo
-
-| Method | Path | Ghi chú |
-|--------|------|---------|
-| GET | `/api/health` | Không JWT |
-| GET | `/api/demo/admin` | Cần `ADMIN_ACCESS` |
-| GET | `/api/demo/user-role` | Cần role `USER` |
-| GET | `/actuator/health` | Actuator (thường permit-all trong YAML) |
+```bash
+# Vi du: da co Kafka / Redpanda / docker-compose listening :9092
+APP_KAFKA_ENABLED=true ./mvnw -pl bootstrap spring-boot:run
+```
 
 ---
 
-## 7. Định dạng lỗi API
+## 6. Co so du lieu va Flyway
 
-Nhiều lỗi được map về dạng:
+### Script
+
+- **`V1__initial_schema.sql`:** DDL + seed dev (RBAC, user, student, refresh token mau).
+- **`R__postgresql_functions.sql`:** repeatable — function/procedure PostgreSQL.
+- **`db/manual/rbac_seed.example.sql`:** mau nap tay (khong Flyway).
+
+### Schema (tom tat)
+
+- PK/FK **UUID**, `gen_random_uuid()` noi can.
+- **Soft delete:** `is_deleted` (entity + bang noi RBAC).
+- **`permissions.enabled` / `roles.enabled`:** bat/tat dinh nghia catalog.
+- **`users.enabled`:** khoa/mo tai khoan (Spring Security).
+
+### Reset dev
+
+Xoa DB hoac `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` roi chay lai app (Flyway tu dau).
+
+### Seed tham chieu
+
+- User **`admin`** / **`user`**, mat khau **`password`**.
+- Refresh thu: **`dev-test-refresh-token-001`** (sau refresh thanh cong thi khong dung lai).
+
+---
+
+## 7. Bao mat
+
+### JWT
+
+- Header: `Authorization: Bearer <token>`
+- `sub` = username; **`uid`** = **UUID dang chuoi**; `authorities` = permission + `ROLE_*`.
+
+### Refresh token
+
+- Opaque; server luu SHA-256; rotate moi lan `/api/auth/refresh`; doi mat khau / khoa user → revoke refresh.
+
+### RBAC (hieu luc)
+
+- Native SQL: `is_deleted = false` (user, role, permission, bang noi) va `enabled = true` (role + permission).
+- Dang ky: gan role qua **`findByCodeAndIsDeletedFalseAndEnabledTrue`**.
+
+### Permit-all
+
+Cau hinh **`app.security.permit-all`:** login, register, refresh, `/api/health`, `/actuator/health`, **`GET /api/demo/redis-counter`**. Con lai mac dinh **authenticated**.
+
+---
+
+## 8. API HTTP
+
+Base: `http://localhost:8080`. Body JSON: `Content-Type: application/json`.
+
+### Auth
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/auth/register` | Khong |
+| POST | `/api/auth/login` | Khong |
+| POST | `/api/auth/refresh` | Khong |
+| POST | `/api/auth/change-password` | JWT |
+
+Dang ky: username 3–64 ky tu, password 8–128 ky tu.
+
+### User hien tai
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/users/current` | JWT |
+
+### Sinh vien
+
+| Method | Path | Quyen |
+|--------|------|--------|
+| GET | `/api/students` | `STUDENT_READ` (phan trang `page`, `size`, `sort`) |
+| POST | `/api/students` | `STUDENT_CREATE` |
+
+### Admin
+
+| Method | Path | Quyen |
+|--------|------|--------|
+| POST | `/api/admin/users/{username}/lock` | `ADMIN_ACCESS` |
+| POST | `/api/admin/users/{username}/unlock` | `ADMIN_ACCESS` |
+| GET | `/api/admin/authz/resource-categories` | `ADMIN_ACCESS` |
+| POST | `/api/admin/authz/resource-categories` | `ADMIN_ACCESS` |
+| GET | `/api/admin/authz/resources` | `ADMIN_ACCESS` |
+| POST | `/api/admin/authz/resources` | `ADMIN_ACCESS` |
+| POST | `/api/admin/authz/roles/{roleCode}/resources/{resourceCode}` | `ADMIN_ACCESS` |
+| DELETE | `/api/admin/authz/roles/{roleCode}/resources/{resourceCode}` | `ADMIN_ACCESS` |
+| PUT | `/api/admin/authz/users/{username}/resources/{resourceCode}` | `ADMIN_ACCESS` |
+| DELETE | `/api/admin/authz/users/{username}/resources/{resourceCode}` | `ADMIN_ACCESS` |
+
+### Authz runtime (resource-level)
+
+- Bang: `authz_resource_categories`, `authz_resources`, `authz_role_resources`, `authz_user_resources`.
+- Match request theo `http_method + url_pattern` (`AntPathMatcher`).
+- Thu tu quyet dinh:
+  - direct user `DENY` > direct user `GRANT` > role-resource grant.
+  - endpoint khong map trong `authz_resources` thi bo qua (de rollout dan).
+- File test nhanh: `http/admin-authz.http`.
+
+### Authz admin-console (mall-like)
+
+- Bang tuong duong mall da co:
+  - `users` ~ `ums_admin`
+  - `roles` ~ `ums_role`
+  - `user_roles` ~ `ums_admin_role_relation`
+  - `authz_resources` ~ `ums_resource`
+  - `authz_role_resources` ~ `ums_role_resource_relation`
+  - `authz_resource_categories` ~ `ums_resource_category`
+  - `permissions` + metadata cay (parent/type/uri/sort) ~ `ums_permission`
+  - `role_permissions` ~ `ums_role_permission_relation`
+  - `user_permissions` (co `effect_type`) ~ `ums_admin_permission_relation`
+  - `authz_admin_menus` ~ `ums_menu`
+  - `authz_role_menus` ~ `ums_role_menu_relation`
+  - `authz_admin_login_logs` ~ `ums_admin_login_log`
+
+### Batch
+
+| Method | Path | Quyen |
+|--------|------|--------|
+| POST | `/api/batch/jobs/student-csv-import` | `ADMIN_ACCESS` |
+
+### Health va demo
+
+| Method | Path | Ghi chu |
+|--------|------|---------|
+| GET | `/api/health` | Public |
+| GET | `/api/demo/redis-counter` | Public — demo Redis |
+| GET | `/api/demo/admin` | `ADMIN_ACCESS` |
+| GET | `/api/demo/user-role` | role `USER` |
+| GET | `/actuator/health` | Public (theo YAML) |
+
+---
+
+## 9. Dinh dang loi API
+
+Nhieu loi qua `RestExceptionHandler`:
 
 ```json
 {
@@ -224,37 +409,38 @@ Nhiều lỗi được map về dạng:
 }
 ```
 
-`error.code` khớp enum **`ErrorStatus`** (module `common`). Một số response thành công (auth, phân trang) có thể là **JSON thuần** — FE cần phân biệt theo từng endpoint.
+`error.code` khop enum **`ErrorStatus`** (`common`). Mot so response thanh cong la JSON thuan (auth, phan trang, demo Redis).
 
 ---
 
-## 8. Gợi ý tích hợp frontend
+## 10. Goi y tich hop frontend
 
-- Lưu `accessToken` và `refreshToken` an toàn theo nền tảng.
-- Gửi `Authorization: Bearer <accessToken>` cho API được bảo vệ.
-- Khi **401**: nếu còn refresh hợp lệ → gọi `/api/auth/refresh`, cập nhật **cả hai** token, retry (tránh vòng lặp vô hạn).
-- Claim `uid` là **string UUID** — parse bằng thư viện UUID của FE nếu cần.
-
----
-
-## 9. Kiểm thử kiến trúc (ArchUnit)
-
-Trong module `bootstrap`, `ModuleArchitectureTest` kiểm tra (tóm tắt):
-
-- `web` không phụ thuộc `batch`.
-- `security` không phụ thuộc `persistence`.
-- `application` không phụ thuộc `web`.
-- `web` không phụ thuộc package `application.service.impl`.
-- `batch` không phụ thuộc `web`.
-- `domain` không phụ thuộc `persistence`.
+- Luu access + refresh an toan; gui `Authorization: Bearer ...`.
+- 401 → thu refresh, cap nhat ca hai token, retry co gioi han.
+- Parse **`uid`** (chuoi UUID) neu can.
 
 ---
 
-## 10. Môi trường và vận hành
+## 11. Kiem thu
 
-- Tài liệu và seed trong repo chỉ phù hợp **dev / thử nghiệm**.
-- **Production:** đổi `JWT_SECRET`, mật khẩu DB, xem xét tách migration chỉ schema vs dữ liệu, tắt hoặc hạn chế Actuator public, harden CORS và TLS theo chính sách tổ chức.
+- **`bootstrap`**, profile **`test`:** H2 in-memory, Flyway tat, **`app.redis.enabled: false`**, **`app.kafka.enabled: false`** (`application-test.yaml`).
+- **ArchUnit** (`ModuleArchitectureTest`): dung package day du `com.klb.app.<module>..` (tranh nham `persistence.security` voi module `security`):
+  - `com.klb.app.web..` khong phu thuoc `com.klb.app.batch..`
+  - `com.klb.app.security..` khong phu thuoc `com.klb.app.persistence..`
+  - `com.klb.app.application..` khong phu thuoc `com.klb.app.web..`
+  - `com.klb.app.web..` khong phu thuoc `com.klb.app.application.service.impl..`
+  - `com.klb.app.batch..` khong phu thuoc `com.klb.app.web..`
+  - `com.klb.app.domain..` khong phu thuoc `com.klb.app.persistence..`
+  - `com.klb.app.redis..` khong phu thuoc web / persistence / application / batch
+  - `com.klb.app.kafka..` khong phu thuoc web / persistence / application / batch
+- Spring Boot 4 — test MVC: `@AutoConfigureMockMvc` trong **`org.springframework.boot.webmvc.test.autoconfigure`**.
 
 ---
 
-*Tài liệu phản ánh codebase tại thời điểm cập nhật. Khi đổi contract API, schema DB hoặc luồng bảo mật, nên chỉnh các mục 4–7 tương ứng.*
+## 12. Moi truong production
+
+Doi **`JWT_SECRET`**, credential DB, can nhac **Redis** va **Kafka** (cluster, ACL, idempotent producer), thu hep Actuator, TLS/CORS theo chinh sach.
+
+---
+
+*Tai lieu dong bo codebase; khi doi API, Flyway, Redis hoac Kafka, cap nhat muc 3–8 va 11 neu can.*

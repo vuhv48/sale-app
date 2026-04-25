@@ -1,0 +1,48 @@
+# Profile local — SPRING_PROFILES_ACTIVE=local (mac dinh trong application.yaml).
+#
+# Docker (Kafka + Kafka UI + Redis + Redis Insight + Prometheus + Grafana):  docker compose up -d
+#   Kafka UI: http://localhost:8089  |  Redis: localhost:6379  |  Redis Insight: http://localhost:8092 (add DB: host redis, 6379)
+#   Prometheus: http://localhost:9090  |  Grafana: http://localhost:3000 (admin / admin — đổi mật khẩu)
+#   Chạy app trên máy (java -jar / IDE) để Prometheus scrape http://host.docker.internal:8080/actuator/prometheus
+#
+# Postgres: tren may (localhost:5432). Tao DB sale_app neu chua co, user/pass khop duoi.
+#   Mat khau rong: SPRING_DATASOURCE_PASSWORD= hoac bo trong gia tri mac dinh.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sale_app
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    # Mac dinh postgres; doi cho khop Postgres tren may ban.
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  kafka:
+    producer:
+      properties:
+        max.block.ms: 5000
+        # Bat buoc >= request.timeout.ms + linger (mac dinh ~30s). 10s se lam KafkaProducer khong khoi tao duoc.
+        delivery.timeout.ms: 120000
+  # Gửi SMTP thật (khi cấu hình): consumer topic mail.queued sẽ dùng JavaMailSender.
+  # mail:
+  #   host: smtp.example.com
+  #   port: 587
+  #   username: ${MAIL_USER:}
+  #   password: ${MAIL_PASSWORD:}
+  #   properties:
+  #     mail.smtp.auth: true
+  #     mail.smtp.starttls.enable: true
+  data:
+    redis:
+      # Khoi voi service `redis` trong docker-compose (cong 6379); doi neu chay Redis rieng.
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+logging:
+  level:
+    com.klb.app: DEBUG
+
+app:
+  kafka:
+    enabled: true
+  redis:
+    enabled: true
+  mongodb:
+    enabled: true

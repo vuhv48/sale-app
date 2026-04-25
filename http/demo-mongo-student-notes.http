@@ -1,0 +1,16 @@
+### Canh bao: can MongoDB chay + profile local (app.mongodb.enabled=true)
+@host = http://localhost:8080
+@studentId = 550e8400-e29b-41d4-a716-446655440000
+
+### Them ghi chu (Mongo collection student_notes_demo, DB sale_app_mongo)
+POST {{host}}/api/demo/mongo-student-notes
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "body": "Hoc Mongo — ghi chu demo"
+}
+
+###
+### Liet ke ghi chu theo studentId (POSTgres UUID sinh vien neu co)
+GET {{host}}/api/demo/mongo-student-notes/{{studentId}}

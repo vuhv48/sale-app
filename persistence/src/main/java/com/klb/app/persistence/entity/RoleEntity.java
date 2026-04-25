@@ -20,7 +20,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "roles")
+@Table(name = "roles", schema = "authz")
 public class RoleEntity extends BaseAuditableEntity {
 
 	@Id
@@ -36,6 +36,7 @@ public class RoleEntity extends BaseAuditableEntity {
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 			name = "role_permissions",
+			schema = "authz",
 			joinColumns = @JoinColumn(name = "role_id"),
 			inverseJoinColumns = @JoinColumn(name = "permission_id")
 	)

@@ -8,6 +8,9 @@ import com.klb.app.domain.security.LoadUserForSecurityPort;
 import com.klb.app.persistence.entity.RefreshTokenEntity;
 import com.klb.app.persistence.entity.RoleEntity;
 import com.klb.app.persistence.entity.UserAccount;
+import com.klb.app.persistence.entity.AuthzAdminLoginLogEntity;
+import com.klb.app.application.service.mail.RegisterWelcomeMailService;
+import com.klb.app.persistence.repository.AuthzAdminLoginLogRepository;
 import com.klb.app.persistence.repository.RefreshTokenRepository;
 import com.klb.app.persistence.repository.RoleEntityRepository;
 import com.klb.app.persistence.repository.UserAccountRepository;
@@ -41,10 +44,12 @@ public class AuthAccountServiceImpl implements AuthAccountService {
 	private final UserAccountRepository userAccountRepository;
 	private final RoleEntityRepository roleEntityRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final RegisterWelcomeMailService registerWelcomeMailService;
+	private final AuthzAdminLoginLogRepository authzAdminLoginLogRepository;
 
 	@Override
 	@Transactional
-	public AccessRefreshResult register(String username, String rawPassword) {
+	public AccessRefreshResult register(String username, String rawPassword, String contactEmail) {
 		String u = username.trim();
 		if (u.isEmpty()) {
 			throw new DomainException(ErrorStatus.VALIDATION_ERROR, "Tên đăng nhập không hợp lệ");
@@ -63,6 +68,7 @@ public class AuthAccountServiceImpl implements AuthAccountService {
 		acc.setDataScope("OWN");
 		acc.getRoles().add(userRole);
 		userAccountRepository.save(acc);
+		registerWelcomeMailService.enqueueWelcomeEmail(acc.getId(), u, contactEmail);
 		var snap = loadUserForSecurity.loadByUsername(u)
 				.orElseThrow(() -> new DomainException(ErrorStatus.INTERNAL_ERROR, ErrorStatus.INTERNAL_ERROR.defaultMessage()));
 		return issueTokens(new AppUserDetails(snap));
@@ -71,6 +77,7 @@ public class AuthAccountServiceImpl implements AuthAccountService {
 	@Override
 	@Transactional
 	public AccessRefreshResult issueTokens(AppUserDetails principal) {
+		refreshTokenRepository.revokeAllActiveForUser(principal.getId());
 		String access = jwtService.generateAccessToken(principal, principal.getId());
 		String refresh = createAndPersistRefreshToken(principal.getId());
 		return new AccessRefreshResult(
@@ -138,6 +145,20 @@ public class AuthAccountServiceImpl implements AuthAccountService {
 		if (!enabled) {
 			refreshTokenRepository.revokeAllActiveForUser(u.getId());
 		}
+	}
+
+	@Override
+	@Transactional
+	public void recordAdminLoginSuccess(UUID userId, String username, String ipAddress, String userAgent) {
+		var user = userAccountRepository.findActiveById(userId)
+				.orElse(null);
+		AuthzAdminLoginLogEntity log = new AuthzAdminLoginLogEntity();
+		log.setUser(user);
+		log.setUsername(username);
+		log.setIpAddress(ipAddress);
+		log.setUserAgent(userAgent);
+		log.setLoggedInAt(Instant.now());
+		authzAdminLoginLogRepository.save(log);
 	}
 
 	private String createAndPersistRefreshToken(UUID userId) {

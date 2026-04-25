@@ -1,6 +1,15 @@
 spring:
   application:
     name: app-platform
+  # Profile mac dinh "local" neu khong set SPRING_PROFILES_ACTIVE (may dev).
+  # Production / staging / dev: bat SPRING_PROFILES_ACTIVE=prod|staging|dev tren server hoac trong CI.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+      - org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration
+      - org.springframework.boot.kafka.autoconfigure.metrics.KafkaMetricsAutoConfiguration
   datasource:
     url: jdbc:postgresql://localhost:5432/sale_app
     username: postgres
@@ -11,6 +20,12 @@ spring:
       ddl-auto: validate
     show-sql: false
   data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      repositories:
+        enabled: false
     web:
       pageable:
         max-page-size: 100
@@ -18,13 +33,60 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:${spring.application.name}}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      properties:
+        enable.idempotence: true
+        linger.ms: 5
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:${spring.application.name}-consumer}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate
   batch:
     job:
       enabled: false
     jdbc:
       initialize-schema: always
 
+logging:
+  level:
+    root: INFO
+
 app:
+  authz:
+    # db | opa
+    mode: ${APP_AUTHZ_MODE:db}
+    dynamic:
+      # true = endpoint khong map trong authz.resources -> deny (khuyen nghi production)
+      # false = endpoint khong map -> allow
+      default-deny: ${APP_AUTHZ_DYNAMIC_DEFAULT_DENY:true}
+    opa:
+      url: ${OPA_URL:http://localhost:8181}
+      # OPA Data API path that returns boolean decision.
+      policy-path: ${OPA_POLICY_PATH:v1/data/sale/authz/allow}
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
+    topic-prefix: app-platform
+    outbox:
+      publish-interval-ms: 2000
+      batch-size: 50
+  redis:
+    enabled: ${APP_REDIS_ENABLED:false}
+    key-prefix: app-platform
+  mongodb:
+    enabled: ${APP_MONGODB_ENABLED:false}
+    uri: ${MONGODB_URI:mongodb://localhost:27017}
+    database: ${MONGODB_DATABASE:sale_app_mongo}
   security:
     permit-all:
       - method: POST
@@ -37,6 +99,26 @@ app:
         path: /api/health
       - method: GET
         path: /actuator/health
+      - method: GET
+        path: /actuator/prometheus
+      - method: GET
+        path: /api/demo/redis-counter
+      - method: GET
+        path: /api/demo/redis-counter/read
+      - method: POST
+        path: /api/demo/redis-student-object
+      - method: GET
+        path: /api/demo/redis-student-object/**
+      - method: GET
+        path: /api/demo/kafka-ping
+      - method: GET
+        path: /api/demo/kafka-echo
+      - method: GET
+        path: /api/demo/kafka-ping-dlq
+      - method: POST
+        path: /api/demo/mongo-student-notes
+      - method: GET
+        path: /api/demo/mongo-student-notes/**
     jwt:
       secret: ${JWT_SECRET:dev-only-change-in-production-min-32-chars-ok}
       issuer: app-platform
@@ -47,4 +129,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, prometheus

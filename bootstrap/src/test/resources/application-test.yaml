@@ -16,6 +16,12 @@ spring:
       enabled: false
 
 app:
+  kafka:
+    enabled: false
+  redis:
+    enabled: false
+  mongodb:
+    enabled: false
   security:
     jwt:
       secret: test-secret-at-least-32-characters-long

@@ -12,6 +12,10 @@
 	<description>Use cases and application services (shared by web, batch, schedulers)</description>
 	<dependencies>
 		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>com.klb</groupId>
 			<artifactId>common</artifactId>
 		</dependency>
@@ -28,9 +32,33 @@
 			<artifactId>security</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.klb</groupId>
+			<artifactId>mongodb</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aop</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjweaver</artifactId>
 		</dependency>
 	</dependencies>
 </project>

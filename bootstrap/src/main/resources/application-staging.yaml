@@ -1,0 +1,32 @@
+# Profile staging / UAT (SPRING_PROFILES_ACTIVE=staging).
+# Can cau hinh SPRING_DATASOURCE_* va JWT_SECRET tren moi truong.
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.klb.app: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+app:
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
+  redis:
+    enabled: ${APP_REDIS_ENABLED:false}
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:app-platform}

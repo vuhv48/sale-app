@@ -15,31 +15,58 @@ class ModuleArchitectureTest {
 
 	@ArchTest
 	static final ArchRule webMustNotDependOnBatch = noClasses()
-			.that().resideInAPackage("..web..")
-			.should().dependOnClassesThat().resideInAPackage("..batch..");
+			.that().resideInAPackage("com.klb.app.web..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.batch..");
 
 	@ArchTest
 	static final ArchRule securityMustNotDependOnPersistence = noClasses()
-			.that().resideInAPackage("..security..")
-			.should().dependOnClassesThat().resideInAPackage("..persistence..");
+			.that().resideInAPackage("com.klb.app.security..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.persistence..");
 
 	@ArchTest
 	static final ArchRule applicationMustNotDependOnWeb = noClasses()
-			.that().resideInAPackage("..application..")
-			.should().dependOnClassesThat().resideInAPackage("..web..");
+			.that().resideInAPackage("com.klb.app.application..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.web..");
 
 	@ArchTest
 	static final ArchRule webMustNotDependOnApplicationServiceImpl = noClasses()
-			.that().resideInAPackage("..web..")
-			.should().dependOnClassesThat().resideInAPackage("..application.service.impl..");
+			.that().resideInAPackage("com.klb.app.web..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.application.service.impl..");
 
 	@ArchTest
 	static final ArchRule batchMustNotDependOnWeb = noClasses()
-			.that().resideInAPackage("..batch..")
-			.should().dependOnClassesThat().resideInAPackage("..web..");
+			.that().resideInAPackage("com.klb.app.batch..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.web..");
 
 	@ArchTest
 	static final ArchRule domainMustNotDependOnPersistence = noClasses()
-			.that().resideInAPackage("..domain..")
-			.should().dependOnClassesThat().resideInAPackage("..persistence..");
+			.that().resideInAPackage("com.klb.app.domain..")
+			.should().dependOnClassesThat().resideInAPackage("com.klb.app.persistence..");
+
+	@ArchTest
+	static final ArchRule redisMustStayInfrastructureOnly = noClasses()
+			.that().resideInAPackage("com.klb.app.redis..")
+			.should().dependOnClassesThat().resideInAnyPackage(
+					"com.klb.app.web..",
+					"com.klb.app.persistence..",
+					"com.klb.app.application..",
+					"com.klb.app.batch..");
+
+	@ArchTest
+	static final ArchRule kafkaMustStayInfrastructureOnly = noClasses()
+			.that().resideInAPackage("com.klb.app.kafka..")
+			.should().dependOnClassesThat().resideInAnyPackage(
+					"com.klb.app.web..",
+					"com.klb.app.persistence..",
+					"com.klb.app.application..",
+					"com.klb.app.batch..");
+
+	@ArchTest
+	static final ArchRule mongodbMustStayInfrastructureOnly = noClasses()
+			.that().resideInAPackage("com.klb.app.mongodb..")
+			.should().dependOnClassesThat().resideInAnyPackage(
+					"com.klb.app.web..",
+					"com.klb.app.persistence..",
+					"com.klb.app.application..",
+					"com.klb.app.batch..");
 }

@@ -1,24 +1,93 @@
-# PostgreSQL cho local dev — khớp bootstrap/src/main/resources/application.yaml
-# Chạy: docker compose up -d
-# Dừng: docker compose down  (thêm -v nếu muốn xóa volume dữ liệu)
+# Local dev: Kafka (KRaft) + Kafka UI + Redis — chay tren Docker (ARM64 / Apple Silicon ok).
+# Postgres: dung ban cai tren may (Homebrew...) tranh trung cong 5432 voi container.
+#
+# Anh bitnami/kafka tren Docker Hub khong con tag cong khai; dung bitnamilegacy/kafka (cung cau hinh ENV).
+#
+# Chay: docker compose up -d
+# Dung: docker compose down
+#
+# Kafka UI: http://localhost:8089
+# Redis: localhost:6379 (profile local: app.redis.enabled=true)
+# Redis Insight (GUI, ARM64 ok): http://localhost:8092 — them DB: host `redis`, port `6379`
+# Prometheus: http://localhost:9090  |  Grafana: http://localhost:3000 (admin / admin — doi ngay)
+# App Spring chay tren may host: scrape /actuator/prometheus qua host.docker.internal:8080
+# App Spring: spring.kafka.bootstrap-servers=localhost:9092 (mac dinh application.yaml)
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: sale-app-postgres
-    environment:
-      POSTGRES_DB: sale_app
-      POSTGRES_USER: sale
-      POSTGRES_PASSWORD: sale
+  kafka:
+    image: docker.io/bitnamilegacy/kafka:4.0.0-debian-12-r10
+    container_name: sale-app-kafka
     ports:
-      - "5432:5432"
+      - "9092:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+      # PLAINTEXT: may host (Spring, kcat). DOCKER: container trong mang compose (kafka-ui).
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,DOCKER://:9094,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,DOCKER://kafka:9094"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,DOCKER:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "DOCKER"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+
+  kafka-ui:
+    image: docker.io/provectuslabs/kafka-ui:latest
+    container_name: sale-app-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8089:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9094
+
+  redis:
+    image: docker.io/redis:7-alpine
+    container_name: sale-app-redis
+    ports:
+      - "6379:6379"
+
+  # rediscommander chi co linux/amd64 -> loi Apple Silicon; dung image chinh thuc co arm64.
+  redis-insight:
+    image: docker.io/redis/redisinsight:latest
+    container_name: sale-app-redis-insight
+    depends_on:
+      - redis
+    ports:
+      - "8092:5540"
+    environment:
+      # Bo qua man EULA lan dau (dev local)
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+
+  prometheus:
+    image: docker.io/prom/prometheus:v2.55.1
+    container_name: sale-app-prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"
     volumes:
-      - sale_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sale -d sale_app"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+
+  grafana:
+    image: docker.io/grafana/grafana:11.4.0
+    container_name: sale-app-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
 
 volumes:
-  sale_pg_data:
+  grafana-data:

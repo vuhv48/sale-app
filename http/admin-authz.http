@@ -1,0 +1,63 @@
+### =============================================================================
+### FILE: admin-authz.http
+### PURPOSE (EN):
+### - Manual admin authorization API scenario for quick verification.
+### - Includes resource creation, role-resource assignment, and listing resources.
+### - Requires a valid ADMIN JWT.
+### MUC DICH:
+### - Kich ban goi API quan tri phan quyen de test nhanh bang tay.
+### - Bao gom tao resource, gan role-resource va kiem tra danh sach resource.
+### - Dung kem JWT cua tai khoan ADMIN.
+### =============================================================================
+
+@host = http://localhost:8080
+@adminToken = REPLACE_WITH_ADMIN_JWT
+
+### 1) Tao resource GET /api/students/**
+POST {{host}}/api/admin/authz/resources
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "resourceCode": "STUDENT_API_READ",
+  "resourceGroup": "STUDENT",
+  "actionCode": "READ",
+  "name": "Read student API",
+  "urlPattern": "/api/students/**",
+  "httpMethod": "GET"
+}
+
+###
+### 2) Tao resource POST /api/students
+POST {{host}}/api/admin/authz/resources
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "resourceCode": "STUDENT_API_CREATE",
+  "resourceGroup": "STUDENT",
+  "actionCode": "CREATE",
+  "name": "Create student API",
+  "urlPattern": "/api/students",
+  "httpMethod": "POST"
+}
+
+###
+### 3) Gan role USER duoc doc student
+POST {{host}}/api/admin/authz/roles/USER/resources/STUDENT_API_READ
+Authorization: Bearer {{adminToken}}
+
+###
+### 4) Gan role ADMIN duoc tao student
+POST {{host}}/api/admin/authz/roles/ADMIN/resources/STUDENT_API_CREATE
+Authorization: Bearer {{adminToken}}
+
+###
+### 5) Xem danh sach resource hien co
+GET {{host}}/api/admin/authz/resources
+Authorization: Bearer {{adminToken}}
+
+###
+### 6) Go gan role-resource
+DELETE {{host}}/api/admin/authz/roles/USER/resources/STUDENT_API_READ
+Authorization: Bearer {{adminToken}}
