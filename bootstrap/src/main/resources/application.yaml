@@ -119,6 +119,12 @@ app:
         path: /api/demo/mongo-student-notes
       - method: GET
         path: /api/demo/mongo-student-notes/**
+      - method: GET
+        path: /swagger-ui/**
+      - method: GET
+        path: /swagger-ui.html
+      - method: GET
+        path: /v3/api-docs/**
     jwt:
       secret: ${JWT_SECRET:dev-only-change-in-production-min-32-chars-ok}
       issuer: app-platform
