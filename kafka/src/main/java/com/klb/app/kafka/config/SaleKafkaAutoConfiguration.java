@@ -1,6 +1,6 @@
 package com.klb.app.kafka.config;
 
-import com.klb.app.domain.messaging.DomainEventPublisher;
+import com.klb.app.common.messaging.DomainEventPublisher;
 import com.klb.app.kafka.integration.KafkaDomainEventPublisher;
 import com.klb.app.kafka.support.KafkaTopicFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

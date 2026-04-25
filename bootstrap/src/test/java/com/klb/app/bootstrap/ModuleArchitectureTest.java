@@ -39,11 +39,6 @@ class ModuleArchitectureTest {
 			.should().dependOnClassesThat().resideInAPackage("com.klb.app.web..");
 
 	@ArchTest
-	static final ArchRule domainMustNotDependOnPersistence = noClasses()
-			.that().resideInAPackage("com.klb.app.domain..")
-			.should().dependOnClassesThat().resideInAPackage("com.klb.app.persistence..");
-
-	@ArchTest
 	static final ArchRule redisMustStayInfrastructureOnly = noClasses()
 			.that().resideInAPackage("com.klb.app.redis..")
 			.should().dependOnClassesThat().resideInAnyPackage(

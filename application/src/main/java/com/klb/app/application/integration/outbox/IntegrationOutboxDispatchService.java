@@ -1,6 +1,6 @@
 package com.klb.app.application.integration.outbox;
 
-import com.klb.app.domain.messaging.DomainEventPublisher;
+import com.klb.app.common.messaging.DomainEventPublisher;
 import com.klb.app.persistence.entity.IntegrationOutbox;
 import com.klb.app.persistence.entity.OutboxStatus;
 import com.klb.app.persistence.repository.IntegrationOutboxRepository;

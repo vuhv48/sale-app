@@ -1,11 +1,8 @@
-package com.klb.app.domain.security;
+package com.klb.app.common.security;
 
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Port tải user cho Spring Security; triển khai ở {@code persistence}.
- */
 public interface LoadUserForSecurityPort {
 
 	Optional<UserSecuritySnapshot> loadByUsername(String username);

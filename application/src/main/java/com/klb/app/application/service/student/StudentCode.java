@@ -1,13 +1,10 @@
-package com.klb.app.domain.student;
+package com.klb.app.application.service.student;
 
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
 
 import java.util.Optional;
 
-/**
- * Mã sinh viên đã chuẩn hoá; ràng buộc độ dài khớp cột DB.
- */
 public final class StudentCode {
 
 	public static final int MAX_LEN = 64;
@@ -22,19 +19,17 @@ public final class StudentCode {
 		return value;
 	}
 
-	/** API tạo tay: mã bắt buộc, không rỗng sau trim, không vượt quá độ dài. */
 	public static StudentCode parse(String raw) {
 		if (raw == null || raw.trim().isEmpty()) {
-			throw new DomainException(ErrorStatus.INVALID_STUDENT_CODE, "Mã sinh viên không được để trống");
+			throw new DomainException(ErrorStatus.INVALID_STUDENT_CODE, "Ma sinh vien khong duoc de trong");
 		}
 		String t = raw.trim();
 		if (t.length() > MAX_LEN) {
-			throw new DomainException(ErrorStatus.INVALID_STUDENT_CODE, "Mã sinh viên vượt quá " + MAX_LEN + " ký tự");
+			throw new DomainException(ErrorStatus.INVALID_STUDENT_CODE, "Ma sinh vien vuot qua " + MAX_LEN + " ky tu");
 		}
 		return new StudentCode(t);
 	}
 
-	/** Import batch: dòng rỗng / quá dài → bỏ qua, không ném lỗi. */
 	public static Optional<StudentCode> tryParseForImport(String raw) {
 		if (raw == null) {
 			return Optional.empty();

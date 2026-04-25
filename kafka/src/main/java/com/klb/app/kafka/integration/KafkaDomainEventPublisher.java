@@ -1,7 +1,7 @@
 package com.klb.app.kafka.integration;
 
-import com.klb.app.domain.messaging.DomainEventPublisher;
-import com.klb.app.domain.messaging.DomainEventSendResult;
+import com.klb.app.common.messaging.DomainEventPublisher;
+import com.klb.app.common.messaging.DomainEventSendResult;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.concurrent.CompletableFuture;

@@ -1,11 +1,8 @@
-package com.klb.app.domain.security;
+package com.klb.app.common.security;
 
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Ảnh chụp dữ liệu user phục vụ xác thực / JWT — không phụ thuộc JPA.
- */
 public record UserSecuritySnapshot(
 		UUID id,
 		String username,

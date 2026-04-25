@@ -1,6 +1,6 @@
 package com.klb.app.security.user;
 
-import com.klb.app.domain.security.UserSecuritySnapshot;
+import com.klb.app.common.security.UserSecuritySnapshot;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

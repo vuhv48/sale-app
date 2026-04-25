@@ -1,6 +1,6 @@
 package com.klb.app.security.user;
 
-import com.klb.app.domain.security.LoadUserForSecurityPort;
+import com.klb.app.common.security.LoadUserForSecurityPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

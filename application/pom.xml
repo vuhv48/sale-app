@@ -21,10 +21,6 @@
 		</dependency>
 		<dependency>
 			<groupId>com.klb</groupId>
-			<artifactId>domain</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.klb</groupId>
 			<artifactId>persistence</artifactId>
 		</dependency>
 		<dependency>
