@@ -11,9 +11,14 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/sale_app
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    # Mac dinh postgres; doi cho khop Postgres tren may ban.
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:sale_app_user}
+    # User app runtime (khong superuser) de PostgreSQL RLS co hieu luc.
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  flyway:
+    # Flyway can su dung owner account de tao/sua policy, owner table, function...
+    # Runtime van dung spring.datasource (sale_app_user) de RLS co hieu luc.
+    user: ${SPRING_FLYWAY_USER:postgres}
+    password: ${SPRING_FLYWAY_PASSWORD:postgres}
   kafka:
     producer:
       properties:

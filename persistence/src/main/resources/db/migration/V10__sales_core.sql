@@ -1,5 +1,5 @@
 -- =============================================================================
--- FILE: V5__sales_core.sql
+-- FILE: V10__sales_core.sql
 -- PURPOSE (EN):
 -- - Add minimal B2B sales core tables for MVP business flows.
 -- - Cover customer, product/sku, order, order item and order status history.

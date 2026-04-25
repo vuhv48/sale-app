@@ -95,4 +95,5 @@ public class CustomerServiceImpl implements CustomerService {
 				entity.isActive(),
 				entity.getCreatedAt());
 	}
+
 }
