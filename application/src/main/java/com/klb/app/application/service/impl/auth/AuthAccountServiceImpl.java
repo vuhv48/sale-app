@@ -4,7 +4,7 @@ import com.klb.app.application.service.auth.AccessRefreshResult;
 import com.klb.app.application.service.auth.AuthAccountService;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
-import com.klb.app.domain.security.LoadUserForSecurityPort;
+import com.klb.app.common.security.LoadUserForSecurityPort;
 import com.klb.app.persistence.entity.RefreshTokenEntity;
 import com.klb.app.persistence.entity.RoleEntity;
 import com.klb.app.persistence.entity.UserAccount;

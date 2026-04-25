@@ -1,7 +1,7 @@
 package com.klb.app.persistence.security;
 
-import com.klb.app.domain.security.LoadUserForSecurityPort;
-import com.klb.app.domain.security.UserSecuritySnapshot;
+import com.klb.app.common.security.LoadUserForSecurityPort;
+import com.klb.app.common.security.UserSecuritySnapshot;
 import com.klb.app.persistence.repository.UserAccountRepository;
 import com.klb.app.persistence.repository.UserSecurityCredentialsProjection;
 import lombok.RequiredArgsConstructor;

@@ -1,134 +1,120 @@
 # Phan quyen he thong
 
-## 1) Muc tieu
+Tai lieu nay mo ta co che phan quyen dang dung trong codebase: RBAC + dynamic resource authz + data-level RLS cho `customers`.
 
-Tai lieu nay mo ta day du co che phan quyen hien tai, gom:
-- RBAC theo permission (bang goc cua he thong)
-- Dynamic authorization theo resource (route-level)
-- Danh sach API lien quan phan quyen de frontend/admin UI tich hop
+## 1) Mo hinh quyen tong quan
 
-## 2) Mo hinh du lieu phan quyen
+He thong hien tai co 3 lop:
 
-Schema: `authz`
+- **Lop 1 - Xac thuc:** JWT (`security` module), tao `Authentication`.
+- **Lop 2 - Dynamic authz theo API route:** check theo `authz.resources` + `authz.role_resources`.
+- **Lop 3 - Data-level authz (RLS):** PostgreSQL RLS tren bang `customers`, dua vao context role + `data_scope`.
 
-### 2.1 RBAC permission-based (giu nguyen)
+## 2) Du lieu authz (schema `authz`)
 
+RBAC co ban:
 - `authz.roles`
-  - role catalog (`ADMIN`, `USER`, ...)
 - `authz.permissions`
-  - `code` (duy nhat)
-  - `permission_group`, `action_code` (tach ngu nghia)
 - `authz.user_roles`
-  - map user -> role
 - `authz.role_permissions`
-  - map role -> permission
-- `authz.user_permissions`
-  - override user-level (`effect_type = GRANT|DENY`)
+- `authz.user_permissions` (override user-level)
 
-### 2.2 Dynamic resource-based
-
-- `authz.resources`
-  - `resource_code` (duy nhat)
-  - `resource_group`, `action_code`
-  - `url_pattern`, `http_method`
+Dynamic route-based authz:
+- `authz.resources` (`resource_code`, `resource_group`, `action_code`, `url_pattern`, `http_method`)
 - `authz.role_resources`
-  - map role -> resource
 
-### 2.3 Admin console phu tro
-
+Admin console support:
 - `authz.admin_menus`
 - `authz.role_menus`
 - `authz.admin_login_logs`
 
-## 3) Luong xac thuc va phan quyen
+## 3) Luong check quyen request
 
-1. User login qua `/api/auth/login`, nhan JWT.
-2. JWT filter xac thuc va dat `Authentication`.
-3. `RequestAuthorizationInterceptor` goi `AuthorizationService.assertRequestAccess(method, path)`.
-4. `SpringAuthorizationService`:
-   - tim resource phu hop (`url_pattern`, `http_method`)
-   - lay resource duoc cap qua role cua user
-   - neu khong duoc cap -> `403`
-5. Chinh sach mac dinh:
-   - `app.authz.dynamic.default-deny=true`
-   - request khong map resource -> deny
+1. Login -> nhan JWT.
+2. JWT filter parse token, dat `Authentication` voi `AppUserDetails`.
+3. Interceptor authz route goi `AuthorizationService.assertRequestAccess(method, path)`.
+4. Neu pass route-level, service layer chay.
+5. Truoc khi service query DB, `PostgresRlsContextAspect` set context RLS:
+   - role
+   - username
+   - data_scope
+6. JPA query den `customers` bi RLS filter tu dong theo policy.
 
-## 4) Danh sach API phan quyen (quan tri)
+## 4) RLS cho customers (state hien tai)
 
-Base path: `/api/admin/authz`
+Migration: `V11__customers_rls.sql`.
 
-### 4.1 Quan ly resource
+### 4.1 DB runtime user
+
+- Runtime user: `sale_app_user` (non-superuser, `NOBYPASSRLS`).
+- Flyway user local: `postgres` (owner) de co quyen tao/sua policy.
+- Neu runtime dung `postgres`, RLS se bi bypass.
+
+### 4.2 Context function
+
+Function:
+- `set_rls_context(p_user_role, p_username, p_data_scope)`
+
+Ben trong function:
+- `PERFORM set_config('app.user_role', ...)`
+- `PERFORM set_config('app.username', ...)`
+- `PERFORM set_config('app.data_scope', ...)`
+
+### 4.3 Policy logic
+
+Policy `customers_scope_policy` cho `customers`:
+
+- `ADMIN` -> thay tat ca
+- `data_scope = ALL` -> thay tat ca
+- `data_scope = OWN` -> chi thay ban ghi co `created_by = username`
+- Nguoc lai -> khong thay
+
+## 5) API quan tri authz
+
+Base: `/api/admin/authz`
 
 - `GET /api/admin/authz/resources`
-  - muc dich: list resource cho man hinh quan tri
 - `POST /api/admin/authz/resources`
-  - muc dich: tao resource moi
-  - body:
-    - `resourceCode`
-    - `resourceGroup`
-    - `actionCode`
-    - `name`
-    - `urlPattern`
-    - `httpMethod`
-
-### 4.2 Gan/quang bo role-resource
-
 - `POST /api/admin/authz/roles/{roleCode}/resources/{resourceCode}`
-  - muc dich: cap quyen resource cho role
 - `DELETE /api/admin/authz/roles/{roleCode}/resources/{resourceCode}`
-  - muc dich: thu hoi quyen resource khoi role
 
-## 5) API lien quan phan quyen (khong thuoc /admin/authz)
-
-### 5.1 Admin user control
-
+Admin user control:
 - `POST /api/admin/users/{username}/lock`
 - `POST /api/admin/users/{username}/unlock`
 
-### 5.2 Auth va audit login
+## 6) Quy uoc dat ma
 
-- `POST /api/auth/login`
-  - goi `recordAdminLoginSuccess(...)`
-  - hien tai ghi vao `authz.admin_login_logs`
+Permission:
+- `permission_group` + `action_code`
+- Vi du: `STUDENT` + `READ`
 
-## 6) API nghiep vu dang duoc bao ve bang dynamic authz
+Resource:
+- `resource_group` + `action_code`
+- `resource_code` giu on dinh de map role-resource
 
-Vi du seed mac dinh:
-- `GET /api/students` -> resource `STUDENT_API_READ`
-- `POST /api/students` -> resource `STUDENT_API_CREATE`
+## 7) Checklist khi them rule data_scope moi
 
-Neu endpoint moi chua map vao `authz.resources`, voi `default-deny=true` se bi chuyen `403`.
+Moi lan them field context moi (vd: `branch_code`), cap nhat dong bo 3 diem:
 
-## 7) Quy uoc dat ma quyen
+1. `PostgresRlsContextAspect`: truyen them tham so xuong DB.
+2. Function `set_rls_context(...)`: them tham so + `set_config`.
+3. Policy RLS: bo sung dieu kien `current_setting('app.xxx', true)`.
 
-### 7.1 Permission
-
-- Nen dat theo cap:
-  - `permission_group`: module/chuc nang (`STUDENT`, `ORDER`, `USER_PROFILE`)
-  - `action_code`: hanh dong (`READ`, `CREATE`, `UPDATE`, `DELETE`, `APPROVE`, ...)
-
-### 7.2 Resource
-
-- `resource_group`: module API
-- `action_code`: muc dich route
-- `resource_code`: key ky thuat (khong doi tuy tien)
-
-## 8) Khuyen nghi cho he thong lon
-
-- Dung `resources` lam runtime gate o edge/request layer
-- Giu `permissions` cho business semantics va reporting
-- Chi cho phep merge endpoint moi khi da co mapping resource
-- Duy tri script seed/chuan hoa mapping de onboarding nhanh
-
-## 9) Truy van kiem tra nhanh
+## 8) Truy van debug nhanh
 
 ```sql
-select * from authz.roles;
-select * from authz.permissions;
-select * from authz.role_permissions;
-select * from authz.user_permissions;
-select * from authz.resources;
-select * from authz.role_resources;
-select * from authz.admin_login_logs order by logged_in_at desc;
+-- runtime DB user co bypass RLS hay khong
+select current_user;
+select rolsuper, rolbypassrls from pg_roles where rolname = current_user;
+
+-- customers da bat RLS chua
+select relrowsecurity, relforcerowsecurity
+from pg_class
+where relname = 'customers';
+
+-- policy hien tai tren customers
+select polname, cmd, qual, with_check
+from pg_policies
+where schemaname = 'public' and tablename = 'customers';
 ```
 

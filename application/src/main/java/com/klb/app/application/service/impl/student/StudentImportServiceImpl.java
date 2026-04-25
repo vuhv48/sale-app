@@ -1,8 +1,8 @@
 package com.klb.app.application.service.impl.student;
 
 import com.klb.app.application.service.student.ImportedStudentRef;
+import com.klb.app.application.service.student.StudentCode;
 import com.klb.app.application.service.student.StudentImportService;
-import com.klb.app.domain.student.StudentCode;
 import com.klb.app.persistence.entity.Student;
 import com.klb.app.persistence.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
