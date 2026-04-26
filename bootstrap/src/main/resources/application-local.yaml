@@ -5,6 +5,9 @@
 #   Prometheus: http://localhost:9090  |  Grafana: http://localhost:3000 (admin / admin — đổi mật khẩu)
 #   Chạy app trên máy (java -jar / IDE) để Prometheus scrape http://host.docker.internal:8080/actuator/prometheus
 #
+# PostgREST: docker compose up -d postgrest
+#   curl -s http://localhost:3001/rpc/list_customers -H "Content-Type: application/json" -d '{"p_limit":20,"p_offset":0}'
+#
 # Postgres: tren may (localhost:5432). Tao DB sale_app neu chua co, user/pass khop duoi.
 #   Mat khau rong: SPRING_DATASOURCE_PASSWORD= hoac bo trong gia tri mac dinh.
 
