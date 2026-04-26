@@ -45,7 +45,7 @@ public class AuthController {
 		if (!loginRateLimitService.isAllowed(clientIp)) {
 			throw new DomainException(
 					ErrorStatus.TOO_MANY_REQUESTS,
-					"Bạn đã vượt quá 5 lần đăng nhập trong 1 phút từ IP: " + clientIp
+					"Bạn đã vượt qtôiuá 5 lần đăng nhập trong 1 phút từ IP: " + clientIp
 			);
 		}
 		var auth = authenticationManager.authenticate(
