@@ -33,6 +33,11 @@ public class CustomerController {
 		return customerService.listPage(pageable);
 	}
 
+	@GetMapping("/{customerId}")
+	public CustomerResponse getById(@PathVariable UUID customerId) {
+		return customerService.getById(customerId);
+	}
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public CustomerResponse create(@Valid @RequestBody CreateCustomerRequest body) {

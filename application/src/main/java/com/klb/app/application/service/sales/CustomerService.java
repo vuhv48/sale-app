@@ -8,6 +8,8 @@ public interface CustomerService {
 
 	SalesSimplePageResponse<CustomerResponse> listPage(Pageable pageable);
 
+	CustomerResponse getById(UUID customerId);
+
 	CustomerResponse create(
 			String customerCode,
 			String name,

@@ -3,6 +3,7 @@ package com.klb.app.application.service.impl.sales;
 import com.klb.app.application.service.sales.SalesOrderItemResponse;
 import com.klb.app.application.service.sales.SalesOrderPageResponse;
 import com.klb.app.application.service.sales.SalesOrderResponse;
+import com.klb.app.application.service.mail.OrderCreatedMailService;
 import com.klb.app.application.service.sales.SalesOrderService;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
@@ -42,6 +43,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
 	private final SalesOrderStatusHistoryRepository salesOrderStatusHistoryRepository;
 	private final CustomerRepository customerRepository;
 	private final ProductSkuRepository productSkuRepository;
+	private final OrderCreatedMailService orderCreatedMailService;
 
 	@Override
 	@Transactional(readOnly = true)
@@ -97,6 +99,12 @@ public class SalesOrderServiceImpl implements SalesOrderService {
 		}
 		order.setTotalAmount(totalAmount);
 		appendHistory(order, null, SalesOrderStatus.NEW, "Create order");
+		orderCreatedMailService.enqueueOrderCreatedEmail(
+				order.getId(),
+				order.getOrderNo(),
+				customer.getName(),
+				customer.getEmail(),
+				totalAmount);
 		return getDetail(order.getId());
 	}
 

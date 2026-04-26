@@ -2,6 +2,9 @@ package com.klb.app.web.controller;
 
 import com.klb.app.application.service.auth.AccessRefreshResult;
 import com.klb.app.application.service.auth.AuthAccountService;
+import com.klb.app.application.service.auth.LoginRateLimitService;
+import com.klb.app.common.api.ErrorStatus;
+import com.klb.app.common.exception.DomainException;
 import com.klb.app.security.user.AppUserDetails;
 import com.klb.app.web.dto.ChangePasswordRequest;
 import com.klb.app.web.dto.LoginRequest;
@@ -28,6 +31,7 @@ public class AuthController {
 
 	private final AuthenticationManager authenticationManager;
 	private final AuthAccountService authAccountService;
+	private final LoginRateLimitService loginRateLimitService;
 
 	@PostMapping("/register")
 	public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest body) {
@@ -37,10 +41,18 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest body, HttpServletRequest request) {
+		String clientIp = resolveClientIp(request);
+		if (!loginRateLimitService.isAllowed(clientIp)) {
+			throw new DomainException(
+					ErrorStatus.TOO_MANY_REQUESTS,
+					"Bạn đã vượt qtôiuá 5 lần đăng nhập trong 1 phút từ IP: " + clientIp
+			);
+		}
 		var auth = authenticationManager.authenticate(
 				UsernamePasswordAuthenticationToken.unauthenticated(body.username(), body.password()));
 		var principal = (AppUserDetails) auth.getPrincipal();
 		var tokens = authAccountService.issueTokens(principal);
+		loginRateLimitService.clear(clientIp);
 		authAccountService.recordAdminLoginSuccess(
 				principal.getId(),
 				principal.getUsername(),
@@ -71,5 +83,20 @@ public class AuthController {
 				"Bearer",
 				r.accessExpiresInSeconds(),
 				r.refreshExpiresInSeconds());
+	}
+
+	private static String resolveClientIp(HttpServletRequest request) {
+		String forwardedFor = request.getHeader("X-Forwarded-For");
+		if (forwardedFor != null && !forwardedFor.isBlank()) {
+			String[] parts = forwardedFor.split(",");
+			if (parts.length > 0 && !parts[0].isBlank()) {
+				return parts[0].trim();
+			}
+		}
+		String realIp = request.getHeader("X-Real-IP");
+		if (realIp != null && !realIp.isBlank()) {
+			return realIp.trim();
+		}
+		return request.getRemoteAddr();
 	}
 }

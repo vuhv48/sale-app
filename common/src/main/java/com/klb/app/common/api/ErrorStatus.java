@@ -17,6 +17,7 @@ public enum ErrorStatus {
 	UNAUTHORIZED(401, "UNAUTHORIZED", "Chưa xác thực"),
 	REFRESH_TOKEN_INVALID(401, "REFRESH_TOKEN_INVALID", "Refresh token không hợp lệ hoặc đã hết hạn"),
 	FORBIDDEN(403, "FORBIDDEN", "Không đủ quyền"),
+	TOO_MANY_REQUESTS(429, "TOO_MANY_REQUESTS", "Bạn thao tác quá nhanh, vui lòng thử lại sau"),
 
 	// —— Dữ liệu đầu vào ——
 	VALIDATION_ERROR(400, "VALIDATION_ERROR", "Dữ liệu không hợp lệ"),

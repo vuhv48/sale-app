@@ -9,6 +9,7 @@
 # Kafka UI: http://localhost:8089
 # Redis: localhost:6379 (profile local: app.redis.enabled=true)
 # Redis Insight (GUI, ARM64 ok): http://localhost:8092 — them DB: host `redis`, port `6379`
+# PostgREST (RPC tu Postgres): http://localhost:3001 — can Flyway V13 + Postgres tren host :5432
 # Prometheus: http://localhost:9090  |  Grafana: http://localhost:3000 (admin / admin — doi ngay)
 # App Spring chay tren may host: scrape /actuator/prometheus qua host.docker.internal:8080
 # App Spring: spring.kafka.bootstrap-servers=localhost:9092 (mac dinh application.yaml)
@@ -47,6 +48,19 @@ services:
     container_name: sale-app-redis
     ports:
       - "6379:6379"
+
+  # Postgres chay tren host (application-local.yaml). PostgREST doc function schema demo_rpc.
+  postgrest:
+    image: docker.io/postgrest/postgrest:v12.2.3
+    container_name: sale-app-postgrest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3001:3000"
+    environment:
+      PGRST_DB_URI: postgres://postgrest_authenticator:postgrest_dev_secret@host.docker.internal:5432/sale_app
+      PGRST_DB_SCHEMAS: demo_rpc
+      PGRST_DB_ANON_ROLE: postgrest_anon
 
   # rediscommander chi co linux/amd64 -> loi Apple Silicon; dung image chinh thuc co arm64.
   redis-insight:
