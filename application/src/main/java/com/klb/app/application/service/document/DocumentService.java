@@ -5,6 +5,7 @@ import java.util.UUID;
 public interface DocumentService {
 
 	UUID saveUploadedDocument(
+			String documentTypeCode,
 			String provider,
 			String bucket,
 			String filePath,

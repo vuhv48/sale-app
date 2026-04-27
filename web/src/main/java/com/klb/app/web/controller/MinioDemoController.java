@@ -127,7 +127,8 @@ public class MinioDemoController {
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, Object>> upload(
 			@RequestPart("file") MultipartFile file,
-			@RequestParam(name = "folder", defaultValue = "documents") String folder
+			@RequestParam(name = "folder", defaultValue = "documents") String folder,
+			@RequestParam(name = "documentType", defaultValue = "GENERIC_FILE") String documentType
 	) throws IOException {
 		S3Client client = s3Client.getIfAvailable();
 		if (!props.enabled() || client == null) {
@@ -147,6 +148,7 @@ public class MinioDemoController {
 				.build();
 		client.putObject(put, RequestBody.fromBytes(file.getBytes()));
 		UUID documentId = documentService.saveUploadedDocument(
+				documentType,
 				"minio",
 				props.bucket(),
 				safeKey,

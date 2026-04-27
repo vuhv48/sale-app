@@ -9,26 +9,39 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "documents")
-public class DocumentEntity extends BaseAuditableEntity {
+@Table(name = "document_versions")
+public class DocumentVersionEntity extends BaseAuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Column(nullable = false, length = 20)
-	private String provider = "minio";
+	@Column(name = "document_id", nullable = false)
+	private UUID documentId;
+
+	@Column(name = "version_no", nullable = false)
+	private int versionNo;
+
+	@Column(name = "storage_provider", nullable = false, length = 20)
+	private String storageProvider = "minio";
 
 	@Column(nullable = false, length = 255)
 	private String bucket;
 
 	@Column(name = "file_path", nullable = false, length = 1024)
 	private String filePath;
+
+	@Column(name = "object_version", length = 255)
+	private String objectVersion;
+
+	@Column(length = 128)
+	private String etag;
 
 	@Column(name = "original_filename", length = 512)
 	private String originalFilename;
@@ -39,12 +52,10 @@ public class DocumentEntity extends BaseAuditableEntity {
 	@Column(name = "size_bytes", nullable = false)
 	private long sizeBytes;
 
-	@Column(nullable = false, length = 30)
-	private String status = "UPLOADED";
+	@Column(name = "upload_status", nullable = false, length = 30)
+	private String uploadStatus = "UPLOADED";
 
-	@Column(name = "document_type_id")
-	private UUID documentTypeId;
-
-	@Column(name = "current_version_id")
-	private UUID currentVersionId;
+	@Column(name = "uploaded_at", nullable = false)
+	private Instant uploadedAt = Instant.now();
 }
+

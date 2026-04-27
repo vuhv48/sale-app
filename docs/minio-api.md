@@ -23,12 +23,13 @@ Hai API chính bạn cần:
 - **Header:** `Content-Type: multipart/form-data`
 - **Field:** `file` (bắt buộc) — có thể là bất kỳ loại file nào; kích thước tối đa theo cấu hình Spring (`spring.servlet.multipart`, hiện ~25MB).
 - **Query (tuỳ chọn):** `folder` (mặc định `documents`). Ví dụ `folder=documents/invoices`.
+- **Query (tuỳ chọn):** `documentType` (mặc định `GENERIC_FILE`).
 
 ### Ví dụ `curl`
 
 ```bash
 curl -s -F "file=@/đường/dẫn/ảnh.png" \
-  "http://localhost:8080/api/demo/minio/upload?folder=documents"
+  "http://localhost:8080/api/demo/minio/upload?folder=documents&documentType=ID_CARD_FRONT"
 ```
 
 ### Response (JSON)
