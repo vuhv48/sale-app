@@ -94,6 +94,56 @@ curl -s http://localhost:8080/api/demo/minio/health
 
 ---
 
+## 4) Batch backfill document_versions (demo)
+
+- **URL:** `POST /api/demo/minio/backfill-versions`
+- **Mục đích:** xử lý dữ liệu cũ trong `documents`:
+  - Nếu thiếu bản ghi version 1 trong `document_versions` -> tạo mới
+  - Nếu `documents.current_version_id` đang `NULL` -> gắn vào version 1
+- **Query (tuỳ chọn):**
+  - `chunkSize` (mặc định `500`) - số record reader lấy mỗi đợt
+  - `maxRounds` (mặc định `200`) - giới hạn số vòng chạy để tránh job quá dài
+
+API này chạy bằng **Spring Batch Job** (`Job`/`Step`/`ItemReader`/`ItemWriter`), không phải service loop thủ công.
+Khi gặp lỗi dữ liệu đã cấu hình `skip`, bản ghi lỗi sẽ được lưu vào bảng `batch_failed_records`.
+Step đang chạy theo chế độ multi-thread với `DEFAULT_WORKERS=4` để xử lý nhanh hơn.
+Lỗi hạ tầng tạm thời (transient/lock) được retry tối đa 3 lần; nếu vẫn lỗi sẽ bị skip và lưu vào `batch_failed_records`.
+Nếu cùng một record lỗi lặp lại do retry, hệ thống sẽ upsert theo khóa lỗi và tăng `retry_count` (không tạo quá nhiều dòng trùng).
+
+### Ví dụ `curl`
+
+```bash
+curl -X POST \
+  "http://localhost:8080/api/demo/minio/backfill-versions?chunkSize=200&maxRounds=100"
+```
+
+### Response (JSON)
+
+```json
+{
+  "ok": true,
+  "exitStatus": "COMPLETED",
+  "status": "COMPLETED",
+  "executionId": 42,
+  "readCount": 1500,
+  "writeCount": 1500,
+  "chunkSize": 200,
+  "maxRounds": 100
+}
+```
+
+### Kiểm tra bản ghi bị lỗi (skip)
+
+```sql
+SELECT job_name, execution_id, step_name, phase, record_key, error_type, error_message, created_at
+FROM batch_failed_records
+WHERE job_name = 'documentVersionBackfillJob'
+ORDER BY created_at DESC
+LIMIT 100;
+```
+
+---
+
 ## Lưu ý bảo mật (chỉ dùng học local)
 
 Các endpoint demo đang được mở `permitAll`. Trên môi trường thật cần: xác thực, whitelist loại file, giới hạn dung lượng, quét mã độc, và kiểm soát việc cấp presigned URL.

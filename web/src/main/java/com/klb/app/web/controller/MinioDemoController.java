@@ -1,5 +1,6 @@
 package com.klb.app.web.controller;
 
+import com.klb.app.application.batch.DocumentVersionBackfillTrigger;
 import com.klb.app.application.service.document.DocumentService;
 import com.klb.app.web.storage.MinioStorageProperties;
 import org.springframework.beans.factory.ObjectProvider;
@@ -42,6 +43,7 @@ public class MinioDemoController {
 	private final ObjectProvider<S3Presigner> s3Presigner;
 	private final MinioStorageProperties props;
 	private final DocumentService documentService;
+	private final DocumentVersionBackfillTrigger documentVersionBackfillTrigger;
 
 	private static final Pattern SAFE_FOLDER = Pattern.compile("[^a-zA-Z0-9/_-]");
 
@@ -49,12 +51,14 @@ public class MinioDemoController {
 			ObjectProvider<S3Client> s3Client,
 			ObjectProvider<S3Presigner> s3Presigner,
 			MinioStorageProperties props,
-			DocumentService documentService
+			DocumentService documentService,
+			DocumentVersionBackfillTrigger documentVersionBackfillTrigger
 	) {
 		this.s3Client = s3Client;
 		this.s3Presigner = s3Presigner;
 		this.props = props;
 		this.documentService = documentService;
+		this.documentVersionBackfillTrigger = documentVersionBackfillTrigger;
 	}
 
 	private ResponseEntity<Map<String, Object>> minioDisabled() {
@@ -165,6 +169,25 @@ public class MinioDemoController {
 				"contentType", file.getContentType() != null ? file.getContentType() : ""
 		));
 	}
+
+	@PostMapping("/backfill-versions")
+	public ResponseEntity<Map<String, Object>> backfillVersions(
+			@RequestParam(name = "chunkSize", defaultValue = "500") int chunkSize,
+			@RequestParam(name = "maxRounds", defaultValue = "200") int maxRounds
+	) {
+		var result = documentVersionBackfillTrigger.run(chunkSize, maxRounds);
+		return ResponseEntity.ok(Map.of(
+				"ok", true,
+				"exitStatus", result.exitStatus(),
+				"status", result.status(),
+				"executionId", result.executionId(),
+				"readCount", result.readCount(),
+				"writeCount", result.writeCount(),
+				"chunkSize", result.chunkSize(),
+				"maxRounds", result.maxRounds()
+		));
+	}
+
 	private String sanitizeFolder(String folder) {
 		String value = folder == null ? "documents" : folder.trim();
 		if (value.isBlank()) {

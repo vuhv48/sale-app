@@ -138,6 +138,8 @@ app:
       - method: GET
         path: /api/demo/minio/preview
       - method: POST
+        path: /api/demo/minio/backfill-versions
+      - method: POST
         path: /api/demo/mongo-student-notes
       - method: GET
         path: /api/demo/mongo-student-notes/**
