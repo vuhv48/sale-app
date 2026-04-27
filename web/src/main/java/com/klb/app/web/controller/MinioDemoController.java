@@ -1,5 +1,6 @@
 package com.klb.app.web.controller;
 
+import com.klb.app.application.service.document.DocumentService;
 import com.klb.app.web.storage.MinioStorageProperties;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Demo upload file len MinIO (S3-compatible). Luon dang ky route de tranh roi vao static resource handler.
@@ -39,15 +41,20 @@ public class MinioDemoController {
 	private final ObjectProvider<S3Client> s3Client;
 	private final ObjectProvider<S3Presigner> s3Presigner;
 	private final MinioStorageProperties props;
+	private final DocumentService documentService;
+
+	private static final Pattern SAFE_FOLDER = Pattern.compile("[^a-zA-Z0-9/_-]");
 
 	public MinioDemoController(
 			ObjectProvider<S3Client> s3Client,
 			ObjectProvider<S3Presigner> s3Presigner,
-			MinioStorageProperties props
+			MinioStorageProperties props,
+			DocumentService documentService
 	) {
 		this.s3Client = s3Client;
 		this.s3Presigner = s3Presigner;
 		this.props = props;
+		this.documentService = documentService;
 	}
 
 	private ResponseEntity<Map<String, Object>> minioDisabled() {
@@ -118,7 +125,10 @@ public class MinioDemoController {
 	}
 
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Map<String, Object>> upload(@RequestPart("file") MultipartFile file) throws IOException {
+	public ResponseEntity<Map<String, Object>> upload(
+			@RequestPart("file") MultipartFile file,
+			@RequestParam(name = "folder", defaultValue = "documents") String folder
+	) throws IOException {
 		S3Client client = s3Client.getIfAvailable();
 		if (!props.enabled() || client == null) {
 			return minioDisabled();
@@ -128,18 +138,52 @@ public class MinioDemoController {
 			throw new IllegalArgumentException("file is empty");
 		}
 		String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload.bin";
-		String safeKey = Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + "-" + original;
+		String sanitizedFolder = sanitizeFolder(folder);
+		String safeKey = sanitizedFolder + "/" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + "-" + original;
 		PutObjectRequest put = PutObjectRequest.builder()
 				.bucket(props.bucket())
 				.key(safeKey)
 				.contentType(file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE)
 				.build();
 		client.putObject(put, RequestBody.fromBytes(file.getBytes()));
+		UUID documentId = documentService.saveUploadedDocument(
+				"minio",
+				props.bucket(),
+				safeKey,
+				original,
+				file.getContentType(),
+				file.getSize()
+		);
 		return ResponseEntity.ok(Map.of(
+				"documentId", documentId,
 				"bucket", props.bucket(),
-				"key", safeKey,
+				"folder", sanitizedFolder,
+				"path", safeKey,
 				"size", file.getSize(),
 				"contentType", file.getContentType() != null ? file.getContentType() : ""
 		));
 	}
+	private String sanitizeFolder(String folder) {
+		String value = folder == null ? "documents" : folder.trim();
+		if (value.isBlank()) {
+			return "documents";
+		}
+		value = value.replace("\\", "/");
+		value = SAFE_FOLDER.matcher(value).replaceAll("");
+		value = value.replaceAll("/+", "/");
+		while (value.startsWith("/")) {
+			value = value.substring(1);
+		}
+		while (value.endsWith("/")) {
+			value = value.substring(0, value.length() - 1);
+		}
+		if (value.isBlank()) {
+			return "documents";
+		}
+		if (value.contains("..")) {
+			throw new IllegalArgumentException("folder contains invalid path '..'");
+		}
+		return value;
+	}
+
 }
