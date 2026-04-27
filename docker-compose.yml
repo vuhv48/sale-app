@@ -11,6 +11,11 @@
 # Redis Insight (GUI, ARM64 ok): http://localhost:8092 — them DB: host `redis`, port `6379`
 # PostgREST (RPC tu Postgres): http://localhost:3001 — can Flyway V13 + Postgres tren host :5432
 # Prometheus: http://localhost:9090  |  Grafana: http://localhost:3000 (admin / admin — doi ngay)
+# Loki (logs): http://localhost:3100 | Promtail doc ./logs/app.log day vao Loki
+# MinIO (S3-compatible object storage, local dev):
+#   - S3 API: http://localhost:9000
+#   - Console UI: http://localhost:9005 (map 9001 -> 9005 de tranh trung port)
+#   - Default creds (dev only): minioadmin / minioadmin
 # App Spring chay tren may host: scrape /actuator/prometheus qua host.docker.internal:8080
 # App Spring: spring.kafka.bootstrap-servers=localhost:9092 (mac dinh application.yaml)
 
@@ -48,6 +53,19 @@ services:
     container_name: sale-app-redis
     ports:
       - "6379:6379"
+
+  minio:
+    image: docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
+    container_name: sale-app-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9005:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
 
   # Postgres chay tren host (application-local.yaml). PostgREST doc function schema demo_rpc.
   postgrest:
@@ -87,11 +105,33 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
 
+  loki:
+    image: docker.io/grafana/loki:3.2.1
+    container_name: sale-app-loki
+    ports:
+      - "3100:3100"
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    volumes:
+      - ./observability/loki/config.yml:/etc/loki/local-config.yaml:ro
+
+  promtail:
+    image: docker.io/grafana/promtail:3.2.1
+    container_name: sale-app-promtail
+    depends_on:
+      - loki
+    command:
+      - "-config.file=/etc/promtail/config.yml"
+    volumes:
+      - ./observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log/sale-app
+
   grafana:
     image: docker.io/grafana/grafana:11.4.0
     container_name: sale-app-grafana
     depends_on:
       - prometheus
+      - loki
     ports:
       - "3000:3000"
     environment:
@@ -105,3 +145,4 @@ services:
 
 volumes:
   grafana-data:
+  minio-data:

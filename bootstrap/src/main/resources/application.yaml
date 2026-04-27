@@ -1,6 +1,10 @@
 spring:
   application:
     name: app-platform
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
   # Profile mac dinh "local" neu khong set SPRING_PROFILES_ACTIVE (may dev).
   # Production / staging / dev: bat SPRING_PROFILES_ACTIVE=prod|staging|dev tren server hoac trong CI.
   profiles:
@@ -59,10 +63,22 @@ spring:
       initialize-schema: always
 
 logging:
+  file:
+    # Promtail (docker compose) doc file log nay de day len Loki.
+    name: ${LOG_FILE_PATH:./logs/app.log}
   level:
     root: INFO
 
 app:
+  storage:
+    minio:
+      enabled: ${APP_STORAGE_MINIO_ENABLED:false}
+      endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+      region: ${MINIO_REGION:us-east-1}
+      access-key: ${MINIO_ACCESS_KEY:}
+      secret-key: ${MINIO_SECRET_KEY:}
+      bucket: ${MINIO_BUCKET:sale-app-files}
+      auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:false}
   authz:
     # db | opa
     mode: ${APP_AUTHZ_MODE:db}
@@ -115,6 +131,12 @@ app:
         path: /api/demo/kafka-echo
       - method: GET
         path: /api/demo/kafka-ping-dlq
+      - method: POST
+        path: /api/demo/minio/upload
+      - method: GET
+        path: /api/demo/minio/health
+      - method: GET
+        path: /api/demo/minio/preview
       - method: POST
         path: /api/demo/mongo-student-notes
       - method: GET
