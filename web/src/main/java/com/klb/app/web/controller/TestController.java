@@ -10,6 +10,6 @@ public class TestController {
 
     @GetMapping("/hello")
     public String helloCI() {
-        return notDefinedVariable;
+        return null;
     }
 }
