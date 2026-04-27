@@ -8,6 +8,11 @@
 # PostgREST: docker compose up -d postgrest
 #   curl -s http://localhost:3001/rpc/list_customers -H "Content-Type: application/json" -d '{"p_limit":20,"p_offset":0}'
 #
+# MinIO (S3-compatible, local): docker compose up -d minio
+#   Console: http://localhost:9005  (user/pass dev: minioadmin / minioadmin)
+#   S3 API:  http://localhost:9000
+#   Tao bucket `sale-app-files` trong console truoc khi upload qua API demo.
+#
 # Postgres: tren may (localhost:5432). Tao DB sale_app neu chua co, user/pass khop duoi.
 #   Mat khau rong: SPRING_DATASOURCE_PASSWORD= hoac bo trong gia tri mac dinh.
 
@@ -54,3 +59,11 @@ app:
     enabled: true
   mongodb:
     enabled: true
+  storage:
+    minio:
+      enabled: true
+      endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      bucket: ${MINIO_BUCKET:sale-app-files}
+      auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
