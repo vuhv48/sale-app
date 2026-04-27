@@ -1,0 +1,46 @@
+# CI: build + test (profile test: H2 in-memory, Flyway/Kafka/Redis/Mongo off).
+# Optional SonarQube scan:
+#   - SONAR_HOST_URL (Repository secrets)
+#   - SONAR_TOKEN    (Repository secrets)
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Maven verify
+        run: ./mvnw -B verify
+
+      - name: SonarQube scan
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          PROJECT_KEY="${GITHUB_REPOSITORY//\//_}"
+          ./mvnw -B -DskipTests sonar:sonar \
+            -Dsonar.projectKey="${PROJECT_KEY}" \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}"
+
+      - name: SonarQube scan skipped
+        if: ${{ env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '' }}
+        run: echo "Skip SonarQube scan (missing SONAR_HOST_URL/SONAR_TOKEN secrets)."
