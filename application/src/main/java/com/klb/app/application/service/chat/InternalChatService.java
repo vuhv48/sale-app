@@ -19,4 +19,6 @@ public interface InternalChatService {
 	ChatRoomDto openDirectRoom(UUID requesterId, UUID peerUserId);
 
 	ChatRoomDto createGroupRoom(UUID ownerId, String code, String name, List<UUID> memberUserIds);
+
+	boolean isMember(String roomCode, UUID userId);
 }

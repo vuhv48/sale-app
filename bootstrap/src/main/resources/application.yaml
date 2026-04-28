@@ -103,6 +103,10 @@ app:
     enabled: ${APP_MONGODB_ENABLED:false}
     uri: ${MONGODB_URI:mongodb://localhost:27017}
     database: ${MONGODB_DATABASE:sale_app_mongo}
+  chat:
+    ws:
+      # Comma-separated allowed origin patterns for websocket handshake.
+      allowed-origin-patterns: ${APP_CHAT_WS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*}
   security:
     permit-all:
       - method: POST
