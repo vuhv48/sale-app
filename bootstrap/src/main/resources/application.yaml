@@ -112,6 +112,12 @@ app:
       - method: POST
         path: /api/auth/refresh
       - method: GET
+        path: /ws/chat
+      - method: GET
+        path: /ws/chat/**
+      - method: GET
+        path: /chat-test.html
+      - method: GET
         path: /api/health
       - method: GET
         path: /actuator/health
