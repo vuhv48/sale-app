@@ -105,6 +105,7 @@ curl -s http://localhost:8080/api/demo/minio/health
   - `maxRounds` (mặc định `200`) - giới hạn số vòng chạy để tránh job quá dài
 
 API này chạy bằng **Spring Batch Job** (`Job`/`Step`/`ItemReader`/`ItemWriter`), không phải service loop thủ công.
+Spring Batch can bang he thong `BATCH_*` (metadata tables). Profile `local` da bat `spring.batch.jdbc.initialize-schema=always` de tu tao bang khi khoi dong.
 Khi gặp lỗi dữ liệu đã cấu hình `skip`, bản ghi lỗi sẽ được lưu vào bảng `batch_failed_records`.
 Step đang chạy theo chế độ multi-thread với `DEFAULT_WORKERS=4` để xử lý nhanh hơn.
 Lỗi hạ tầng tạm thời (transient/lock) được retry tối đa 3 lần; nếu vẫn lỗi sẽ bị skip và lưu vào `batch_failed_records`.

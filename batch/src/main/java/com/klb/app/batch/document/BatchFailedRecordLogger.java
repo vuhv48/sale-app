@@ -3,6 +3,8 @@ package com.klb.app.batch.document;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -10,6 +12,11 @@ public class BatchFailedRecordLogger {
 
 	private final JdbcTemplate jdbcTemplate;
 
+	/**
+	 * Chunk step runs one transaction per chunk; after any SQL failure PostgreSQL marks the
+	 * transaction aborted (25P02). Logging must use a separate transaction / connection.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void insertFailedRecord(
 			String jobName,
 			Long executionId,

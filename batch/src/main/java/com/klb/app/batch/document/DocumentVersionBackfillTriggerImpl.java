@@ -5,8 +5,10 @@ import com.klb.app.application.batch.DocumentVersionBackfillTrigger;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocumentVersionBackfillTriggerImpl implements DocumentVersionBackfillTrigger {
@@ -27,11 +29,24 @@ public class DocumentVersionBackfillTriggerImpl implements DocumentVersionBackfi
 					Math.max(1, maxRounds)
 			);
 		} catch (Exception e) {
+			Throwable root = rootCause(e);
+			String rootMessage = root != null && root.getMessage() != null ? root.getMessage() : null;
+			String rootType = root != null ? root.getClass().getSimpleName() : "Exception";
+			log.error("[batch] documentVersionBackfillJob failed", e);
 			throw new DomainException(
 					ErrorStatus.BATCH_JOB_FAILED,
-					e.getMessage() != null ? e.getMessage() : ErrorStatus.BATCH_JOB_FAILED.defaultMessage()
+					rootMessage != null ? rootType + ": " + rootMessage
+							: (e.getMessage() != null ? e.getMessage() : ErrorStatus.BATCH_JOB_FAILED.defaultMessage())
 			);
 		}
+	}
+
+	private static Throwable rootCause(Throwable t) {
+		Throwable current = t;
+		while (current != null && current.getCause() != null && current.getCause() != current) {
+			current = current.getCause();
+		}
+		return current;
 	}
 }
 

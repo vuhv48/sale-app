@@ -176,8 +176,9 @@ public class MinioDemoController {
 			@RequestParam(name = "maxRounds", defaultValue = "200") int maxRounds
 	) {
 		var result = documentVersionBackfillTrigger.run(chunkSize, maxRounds);
-		return ResponseEntity.ok(Map.of(
-				"ok", true,
+		boolean jobOk = "COMPLETED".equals(result.status()) && "COMPLETED".equals(result.exitStatus());
+		return ResponseEntity.status(jobOk ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+				"ok", jobOk,
 				"exitStatus", result.exitStatus(),
 				"status", result.status(),
 				"executionId", result.executionId(),
