@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test WebSocket chat (STOMP)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 1rem auto; padding: 0 1rem; }
+    pre#log { background: #1a1a1a; color: #b4fc90; padding: 1rem; min-height: 220px; overflow: auto; font-size: 13px; }
+    input[type="text"] { width: 100%; max-width: 42rem; }
+    .row { margin: 0.5rem 0; }
+    button { margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Test chat WebSocket</h1>
+  <p>
+    <strong>Bước 1:</strong> Đăng nhập <code>POST /api/auth/login</code> (Swagger hoặc curl), copy <strong>access token</strong>.<br>
+    <strong>Bước 2:</strong> Dán token, bấm <strong>Connect</strong>.<br>
+    <strong>Bước 3:</strong> Đặt <code>roomCode</code> (mặc định <code>general</code>), Connect — trang sẽ subscribe <code>/topic/chat/&lt;room&gt;</code>. Mở hai tab để thấy tin realtime.
+  </p>
+
+  <div class="row">
+    <label>JWT access token<br>
+      <input id="token" type="text" autocomplete="off" placeholder="eyJhbGciOi...">
+    </label>
+  </div>
+  <div class="row">
+    <button type="button" id="connect">Connect</button>
+    <button type="button" id="disconnect" disabled>Disconnect</button>
+  </div>
+  <div class="row">
+    <label>roomCode <input id="room" type="text" value="general" style="width:8rem"></label>
+  </div>
+  <div class="row">
+    <label>Nội dung<br><input id="msg" type="text" value="Xin chào từ chat-test"></label>
+  </div>
+  <div class="row">
+    <button type="button" id="send" disabled>Gửi (/app/chat.send)</button>
+  </div>
+
+  <h2>Log</h2>
+  <pre id="log"></pre>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(line) {
+      logEl.textContent += new Date().toISOString() + '  ' + line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    let client = null;
+
+    function brokerUrl() {
+      const token = document.getElementById('token').value.trim();
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return proto + '//' + window.location.host + '/ws/chat?token=' + encodeURIComponent(token);
+    }
+
+    document.getElementById('connect').onclick = function () {
+      const token = document.getElementById('token').value.trim();
+      if (!token) {
+        log('Thiếu JWT.');
+        return;
+      }
+      if (client) {
+        client.deactivate();
+        client = null;
+      }
+      client = new StompJs.Client({
+        brokerURL: brokerUrl(),
+        reconnectDelay: 0,
+        debug: function () {},
+        onConnect: function () {
+          log('STOMP connected.');
+          const room = document.getElementById('room').value.trim() || 'general';
+          client.subscribe('/topic/chat/' + room, function (message) {
+            log('TOPIC /topic/chat/' + room + ' ← ' + message.body);
+          });
+          client.subscribe('/user/queue/chat/errors', function (message) {
+            log('USER ERR ← ' + message.body);
+          });
+          document.getElementById('send').disabled = false;
+          document.getElementById('disconnect').disabled = false;
+          document.getElementById('connect').disabled = true;
+        },
+        onStompError: function (frame) {
+          log('STOMP ERROR: ' + (frame.headers['message'] || '') + ' — ' + (frame.body || ''));
+        },
+        onWebSocketError: function (e) {
+          log('WebSocket error (kiểm tra token, server, Flyway V21): ' + e);
+        },
+        onDisconnect: function () {
+          log('Disconnected.');
+          document.getElementById('send').disabled = true;
+          document.getElementById('disconnect').disabled = true;
+          document.getElementById('connect').disabled = false;
+        }
+      });
+      client.activate();
+    };
+
+    document.getElementById('disconnect').onclick = function () {
+      if (client) {
+        client.deactivate();
+        client = null;
+      }
+    };
+
+    document.getElementById('send').onclick = function () {
+      if (!client || !client.connected) {
+        log('Chưa kết nối.');
+        return;
+      }
+      const roomCode = document.getElementById('room').value.trim() || 'general';
+      const body = document.getElementById('msg').value;
+      client.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify({ roomCode: roomCode, body: body }),
+        headers: { 'content-type': 'application/json' }
+      });
+      log('SEND → /app/chat.send ' + JSON.stringify({ roomCode: roomCode, body: body }));
+    };
+  </script>
+</body>
+</html>
