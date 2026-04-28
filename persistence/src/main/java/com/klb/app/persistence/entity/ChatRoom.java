@@ -26,4 +26,10 @@ public class ChatRoom extends BaseAuditableEntity {
 
 	@Column(nullable = false)
 	private String name;
+
+	@Column(name = "room_type", nullable = false, length = 16)
+	private String roomType = "GROUP";
+
+	@Column(name = "direct_key", length = 80, unique = true)
+	private String directKey;
 }

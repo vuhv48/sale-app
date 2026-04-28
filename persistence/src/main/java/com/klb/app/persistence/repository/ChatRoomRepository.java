@@ -12,4 +12,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
 
 	@Query("select r from ChatRoom r where r.code = :code and r.isDeleted = false")
 	Optional<ChatRoom> findActiveByCode(@Param("code") String code);
+
+	@Query("select r from ChatRoom r where r.directKey = :directKey and r.isDeleted = false")
+	Optional<ChatRoom> findActiveDirectByKey(@Param("directKey") String directKey);
 }
