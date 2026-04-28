@@ -12,11 +12,11 @@ public interface InternalChatService {
 
 	ChatMessageDto appendMessage(String roomCode, UUID senderId, String senderUsername, String body);
 
+	Page<ChatMessageDto> listMessages(String roomCode, UUID requesterId, Pageable pageable);
+
 	List<ChatRoomDto> listMyRooms(UUID userId);
 
 	ChatRoomDto openDirectRoom(UUID requesterId, UUID peerUserId);
 
 	ChatRoomDto createGroupRoom(UUID ownerId, String code, String name, List<UUID> memberUserIds);
-
-	Page<ChatMessageDto> listMessages(String roomCode, Pageable pageable);
 }

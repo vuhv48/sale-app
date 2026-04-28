@@ -71,7 +71,7 @@ public class InternalChatServiceImpl implements InternalChatService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<ChatMessageDto> listMessages(String roomCode, Pageable pageable) {
+	public Page<ChatMessageDto> listMessages(String roomCode, UUID requesterId, Pageable pageable) {
 		var room = chatRoomRepository.findActiveByCode(roomCode.trim())
 				.orElseThrow(() -> new DomainException(ErrorStatus.INVALID_ARGUMENT, "Phòng chat không tồn tại: " + roomCode));
 		if (userAccountRepository.findActiveById(requesterId).isEmpty()) {
