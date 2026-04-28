@@ -27,6 +27,10 @@ spring:
     # Runtime van dung spring.datasource (sale_app_user) de RLS co hieu luc.
     user: ${SPRING_FLYWAY_USER:postgres}
     password: ${SPRING_FLYWAY_PASSWORD:postgres}
+  batch:
+    jdbc:
+      # Tu dong tao cac bang he thong BATCH_* cho Spring Batch khi chay local.
+      initialize-schema: always
   kafka:
     producer:
       properties:
