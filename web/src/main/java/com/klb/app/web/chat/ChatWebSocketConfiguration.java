@@ -1,7 +1,9 @@
 package com.klb.app.web.chat;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -14,6 +16,9 @@ public class ChatWebSocketConfiguration implements WebSocketMessageBrokerConfigu
 
 	private final ChatHandshakeInterceptor chatHandshakeInterceptor;
 	private final ChatPrincipalHandshakeHandler chatPrincipalHandshakeHandler;
+	private final ChatSubscriptionAuthorizationInterceptor chatSubscriptionAuthorizationInterceptor;
+	@Value("${app.chat.ws.allowed-origin-patterns:http://localhost:*}")
+	private String allowedOriginPatterns;
 
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -26,6 +31,18 @@ public class ChatWebSocketConfiguration implements WebSocketMessageBrokerConfigu
 		registry.addEndpoint("/ws/chat")
 				.setHandshakeHandler(chatPrincipalHandshakeHandler)
 				.addInterceptors(chatHandshakeInterceptor)
-				.setAllowedOriginPatterns("*");
+				.setAllowedOriginPatterns(parseAllowedOrigins(allowedOriginPatterns));
+	}
+
+	@Override
+	public void configureClientInboundChannel(ChannelRegistration registration) {
+		registration.interceptors(chatSubscriptionAuthorizationInterceptor);
+	}
+
+	private static String[] parseAllowedOrigins(String raw) {
+		return java.util.Arrays.stream(raw.split(","))
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.toArray(String[]::new);
 	}
 }

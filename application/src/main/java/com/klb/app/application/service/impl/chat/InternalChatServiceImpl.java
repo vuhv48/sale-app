@@ -13,6 +13,7 @@ import com.klb.app.persistence.repository.ChatRoomMemberRepository;
 import com.klb.app.persistence.repository.ChatRoomRepository;
 import com.klb.app.persistence.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -114,7 +115,14 @@ public class InternalChatServiceImpl implements InternalChatService {
 		room.setDirectKey(directKey);
 		room.setCreatedBy(requester.getUsername());
 		room.setUpdatedBy(requester.getUsername());
-		chatRoomRepository.save(room);
+		try {
+			chatRoomRepository.save(room);
+		} catch (DataIntegrityViolationException e) {
+			// Concurrent open request may have just inserted same direct_key.
+			return chatRoomRepository.findActiveDirectByKey(directKey)
+					.map(InternalChatServiceImpl::toRoomDto)
+					.orElseThrow(() -> e);
+		}
 		addMembership(room, requesterId, requester.getUsername());
 		addMembership(room, peerUserId, requester.getUsername());
 		return toRoomDto(room);
@@ -161,6 +169,19 @@ public class InternalChatServiceImpl implements InternalChatService {
 			addMembership(room, uid, owner.getUsername());
 		}
 		return toRoomDto(room);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isMember(String roomCode, UUID userId) {
+		if (!StringUtils.hasText(roomCode) || userId == null) {
+			return false;
+		}
+		var room = chatRoomRepository.findActiveByCode(roomCode.trim());
+		if (room.isEmpty()) {
+			return false;
+		}
+		return chatRoomMemberRepository.existsActiveMembership(room.get().getId(), userId);
 	}
 
 	private void addMembership(ChatRoom room, UUID userId, String actor) {

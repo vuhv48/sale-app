@@ -1,6 +1,7 @@
 package com.klb.app.application.service.impl.auth;
 
 import com.klb.app.application.service.auth.AccessRefreshResult;
+import com.klb.app.application.service.auth.AdminUserSearchResponse;
 import com.klb.app.application.service.auth.AuthAccountService;
 import com.klb.app.common.api.ErrorStatus;
 import com.klb.app.common.exception.DomainException;
@@ -28,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -145,6 +147,22 @@ public class AuthAccountServiceImpl implements AuthAccountService {
 		if (!enabled) {
 			refreshTokenRepository.revokeAllActiveForUser(u.getId());
 		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<AdminUserSearchResponse> searchUsersByName(String name) {
+		if (name == null || name.isBlank()) {
+			return List.of();
+		}
+		return userAccountRepository.findTop20ByIsDeletedFalseAndUsernameContainingIgnoreCaseOrderByUsernameAsc(name.trim())
+				.stream()
+				.map(u -> new AdminUserSearchResponse(
+						u.getId(),
+						u.getUsername(),
+						u.isEnabled(),
+						u.getDataScope()))
+				.toList();
 	}
 
 	@Override
