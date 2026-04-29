@@ -108,6 +108,9 @@ app:
       # Comma-separated allowed origin patterns for websocket handshake.
       allowed-origin-patterns: ${APP_CHAT_WS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*}
   security:
+    cors:
+      # Comma-separated FE origins allowed for REST API CORS.
+      allowed-origins: ${APP_SECURITY_CORS_ALLOWED_ORIGINS:http://localhost:3002,http://localhost:3000}
     permit-all:
       - method: POST
         path: /api/auth/login
@@ -123,6 +126,8 @@ app:
         path: /chat-test.html
       - method: GET
         path: /api/health
+      - method: GET
+        path: /api/admin/users/search
       - method: GET
         path: /actuator/health
       - method: GET

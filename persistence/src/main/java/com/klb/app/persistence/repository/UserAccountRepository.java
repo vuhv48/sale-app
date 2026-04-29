@@ -20,6 +20,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 	@Query("select u from UserAccount u where u.id = :id and u.isDeleted = false")
 	Optional<UserAccount> findActiveById(@Param("id") UUID id);
 
+	List<UserAccount> findTop20ByIsDeletedFalseAndUsernameContainingIgnoreCaseOrderByUsernameAsc(String username);
+
 	@Query(
 			value = """
 					select u.id as id, u.username as username, u.password_hash as passwordHash,

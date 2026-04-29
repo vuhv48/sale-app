@@ -2,6 +2,7 @@ package com.klb.app.application.service.auth;
 
 import com.klb.app.security.user.AppUserDetails;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,6 +19,8 @@ public interface AuthAccountService {
 	void changePassword(UUID userId, String currentPassword, String newPassword);
 
 	void setUserEnabledByUsername(String username, boolean enabled);
+
+	List<AdminUserSearchResponse> searchUsersByName(String name);
 
 	void recordAdminLoginSuccess(UUID userId, String username, String ipAddress, String userAgent);
 }
