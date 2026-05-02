@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.kafka", name = "enabled", havingValue = "true")
 public class DemoKafkaDltListener {
 
+	/*
 	@KafkaListener(
 			topics = "#{@kafkaTopicFactory.topic('demo','ping').concat('.DLT')}",
 			groupId = "${spring.kafka.consumer.group-id}-dlt-demo",
@@ -31,4 +32,6 @@ public class DemoKafkaDltListener {
 		log.warn("[kafka-demo] DLT — topic={} offset={} payload={}", topic, offset, payload);
 		ack.acknowledge();
 	}
+
+	 */
 }

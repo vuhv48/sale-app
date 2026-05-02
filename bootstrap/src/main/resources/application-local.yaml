@@ -59,6 +59,8 @@ logging:
 app:
   kafka:
     enabled: true
+    outbox:
+      relay-enabled: false
   redis:
     enabled: true
   mongodb:
