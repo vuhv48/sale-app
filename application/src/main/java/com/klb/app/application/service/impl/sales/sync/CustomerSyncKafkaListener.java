@@ -46,9 +46,9 @@ public class CustomerSyncKafkaListener {
 			return;
 		}
 
-		if(true) {
-			throw new IllegalStateException("force retry for test");
-		}
+//		if(true) {
+//			throw new IllegalStateException("force retry for test");
+//		}
 
 
 		List<CustomerSyncEvent> events = new ArrayList<>(payloads.size());
