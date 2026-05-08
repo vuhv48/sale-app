@@ -27,9 +27,15 @@ public class KafkaListenerDlqConfiguration {
 
 	@Bean
 	public DefaultErrorHandler kafkaDefaultErrorHandler(KafkaTemplate<String, String> kafkaTemplate) {
+		// Recoverer se duoc goi khi retry da het so lan.
+		// O day map record loi sang topic "<topic-goc>.DLT", giu nguyen partition.
 		DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
 				kafkaTemplate,
 				(record, ex) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
+		// DefaultErrorHandler la co che retry cua Spring Kafka:
+		// - listener throw exception -> container bat loi -> chuyen vao handler nay
+		// - retry theo backoff (BACKOFF_MS) voi so lan toi da (MAX_ATTEMPTS)
+		// - neu van fail -> goi recoverer o tren de day sang DLT
 		return new DefaultErrorHandler(recoverer, new FixedBackOff(BACKOFF_MS, MAX_ATTEMPTS));
 	}
 
@@ -41,7 +47,10 @@ public class KafkaListenerDlqConfiguration {
 		ConcurrentKafkaListenerContainerFactory<String, String> factory =
 				new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(consumerFactory);
+		// Gan error handler chung: bat ky listener nao dung factory nay, throw exception se di vao retry/DLT flow.
 		factory.setCommonErrorHandler(kafkaDefaultErrorHandler);
+		// Manual ack: listener chi commit offset khi chu dong ack.
+		// Neu throw truoc ack -> offset chua commit -> handler co co hoi retry.
 		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 		return factory;
 	}
@@ -57,6 +66,7 @@ public class KafkaListenerDlqConfiguration {
 		ConcurrentKafkaListenerContainerFactory<String, String> factory =
 				new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(consumerFactory);
+		// Batch mode: listener nhan List<String> thay vi tung record.
 		factory.setCommonErrorHandler(kafkaDefaultErrorHandler);
 		factory.setBatchListener(true);
 		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);

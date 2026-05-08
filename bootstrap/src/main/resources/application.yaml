@@ -100,6 +100,8 @@ app:
     customer-sync:
       # So luong thread consumer trong 1 instance (tong throughput = partitions * instances * concurrency)
       concurrency: ${APP_KAFKA_CUSTOMER_SYNC_CONCURRENCY:6}
+      # Chunk size de fallback xu ly tung record khi bulk-upsert loi.
+      fallback-chunk-size: ${APP_KAFKA_CUSTOMER_SYNC_FALLBACK_CHUNK_SIZE:50}
   redis:
     enabled: ${APP_REDIS_ENABLED:false}
     key-prefix: app-platform
