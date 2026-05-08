@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.klb.app.application.service.sales.sync.CustomerSyncEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -26,6 +27,8 @@ public class CustomerSyncKafkaListener {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 	private final CustomerSyncUpsertService upsertService;
+	@Value("${app.kafka.customer-sync.fallback-chunk-size:50}")
+	private int fallbackChunkSize;
 
 	public CustomerSyncKafkaListener(CustomerSyncUpsertService upsertService) {
 		this.upsertService = upsertService;
@@ -43,20 +46,53 @@ public class CustomerSyncKafkaListener {
 			return;
 		}
 
+//		if(true) {
+//			throw new IllegalStateException("force retry for test");
+//		}
+
+
 		List<CustomerSyncEvent> events = new ArrayList<>(payloads.size());
 		for (String payload : payloads) {
 			events.add(parse(payload));
 		}
 
-		upsertService.bulkUpsert(events);
+		int successCount = processWithChunkFallback(events);
 		ack.acknowledge();
+		log.info("[customer-sync] batch processed: input={}, success={}", payloads.size(), successCount);
+	}
+
+	private int processWithChunkFallback(List<CustomerSyncEvent> events) {
+		if (events.isEmpty()) {
+			return 0;
+		}
+		int success = 0;
+		for (int i = 0; i < events.size(); i += fallbackChunkSize) {
+			int end = Math.min(i + fallbackChunkSize, events.size());
+			List<CustomerSyncEvent> chunk = events.subList(i, end);
+			try {
+				upsertService.bulkUpsert(chunk);
+				success += chunk.size();
+			} catch (Exception bulkEx) {
+				log.warn("[customer-sync] chunk bulk upsert failed (size={}), fallback one-by-one", chunk.size(), bulkEx);
+				for (CustomerSyncEvent event : chunk) {
+					try {
+						upsertService.upsertOne(event);
+						success++;
+					} catch (Exception oneEx) {
+						// Khong nuot loi: throw de DefaultErrorHandler retry va khi het retry se day sang DLT
+						throw new IllegalStateException("Invalid record customerCode=" + event.customerCode(), oneEx);
+					}
+				}
+			}
+		}
+		return success;
 	}
 
 	private CustomerSyncEvent parse(String payload) {
 		try {
 			return OBJECT_MAPPER.readValue(payload, CustomerSyncEvent.class);
 		} catch (JsonProcessingException e) {
-			// Parse loi coi nhu data-bad -> cho retry/DLT (de khong nuot mat du lieu)
+			// Parse loi -> throw de retry/DLT giu duoc error headers
 			throw new IllegalArgumentException("Invalid customer sync payload: " + payload, e);
 		}
 	}

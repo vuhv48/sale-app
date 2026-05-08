@@ -18,6 +18,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomerSyncUpsertService {
 
+	private static final String UPSERT_SQL = """
+			INSERT INTO customers(
+				customer_code, name, phone, email, tax_code, address_line, is_active,
+				is_deleted, created_at, updated_at
+			) VALUES (
+				:customerCode, :name, :phone, :email, :taxCode, :addressLine, :active,
+				false, :now, :now
+			)
+			ON CONFLICT (customer_code) DO UPDATE SET
+				name = EXCLUDED.name,
+				phone = EXCLUDED.phone,
+				email = EXCLUDED.email,
+				tax_code = EXCLUDED.tax_code,
+				address_line = EXCLUDED.address_line,
+				is_active = EXCLUDED.is_active,
+				is_deleted = false,
+				updated_at = EXCLUDED.updated_at
+			""";
+
 	private final NamedParameterJdbcTemplate jdbcTemplate;
 
 	/**
@@ -32,40 +51,32 @@ public class CustomerSyncUpsertService {
 		// customers table dang bat RLS; can set context cho transaction hien tai truoc khi upsert.
 		jdbcTemplate.getJdbcTemplate().execute("select set_rls_context('ADMIN','kafka-sync','ALL')");
 
-		String sql = """
-				INSERT INTO customers(
-					customer_code, name, phone, email, tax_code, address_line, is_active,
-					is_deleted, created_at, updated_at
-				) VALUES (
-					:customerCode, :name, :phone, :email, :taxCode, :addressLine, :active,
-					false, :now, :now
-				)
-				ON CONFLICT (customer_code) DO UPDATE SET
-					name = EXCLUDED.name,
-					phone = EXCLUDED.phone,
-					email = EXCLUDED.email,
-					tax_code = EXCLUDED.tax_code,
-					address_line = EXCLUDED.address_line,
-					is_active = EXCLUDED.is_active,
-					is_deleted = false,
-					updated_at = EXCLUDED.updated_at
-				""";
-
-		Instant now = Instant.now();
-		Timestamp nowTs = Timestamp.from(now);
 		MapSqlParameterSource[] batch = events.stream()
-				.map(e -> new MapSqlParameterSource()
-						.addValue("customerCode", requiredTrim(e.customerCode(), "customerCode"))
-						.addValue("name", requiredTrim(e.name(), "name"))
-						.addValue("phone", optionalTrim(e.phone()))
-						.addValue("email", optionalTrim(e.email()))
-						.addValue("taxCode", optionalTrim(e.taxCode()))
-						.addValue("addressLine", optionalTrim(e.addressLine()))
-						.addValue("active", e.active() != null ? e.active() : Boolean.TRUE)
-						.addValue("now", nowTs))
+				.map(this::toParams)
 				.toArray(MapSqlParameterSource[]::new);
 
-		jdbcTemplate.batchUpdate(sql, batch);
+		jdbcTemplate.batchUpdate(UPSERT_SQL, batch);
+	}
+
+	@Transactional
+	public void upsertOne(CustomerSyncEvent event) {
+		// customers table dang bat RLS; can set context cho transaction hien tai truoc khi upsert.
+		jdbcTemplate.getJdbcTemplate().execute("select set_rls_context('ADMIN','kafka-sync','ALL')");
+		jdbcTemplate.update(UPSERT_SQL, toParams(event));
+	}
+
+	private MapSqlParameterSource toParams(CustomerSyncEvent event) {
+		Instant now = Instant.now();
+		Timestamp nowTs = Timestamp.from(now);
+		return new MapSqlParameterSource()
+				.addValue("customerCode", requiredTrim(event.customerCode(), "customerCode"))
+				.addValue("name", requiredTrim(event.name(), "name"))
+				.addValue("phone", optionalTrim(event.phone()))
+				.addValue("email", optionalTrim(event.email()))
+				.addValue("taxCode", optionalTrim(event.taxCode()))
+				.addValue("addressLine", optionalTrim(event.addressLine()))
+				.addValue("active", event.active() != null ? event.active() : Boolean.TRUE)
+				.addValue("now", nowTs);
 	}
 
 	private static String requiredTrim(String value, String field) {
