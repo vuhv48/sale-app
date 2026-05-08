@@ -45,4 +45,21 @@ public class KafkaListenerDlqConfiguration {
 		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 		return factory;
 	}
+
+	/**
+	 * Batch listener factory: dung cho backfill/stream lon (vd 2tr record) de giam overhead poll/commit.
+	 * Payload van la String (JSON) de khong anh huong deserializer mac dinh.
+	 */
+	@Bean(name = "kafkaBatchListenerContainerFactory")
+	public ConcurrentKafkaListenerContainerFactory<String, String> kafkaBatchListenerContainerFactory(
+			ConsumerFactory<String, String> consumerFactory,
+			DefaultErrorHandler kafkaDefaultErrorHandler) {
+		ConcurrentKafkaListenerContainerFactory<String, String> factory =
+				new ConcurrentKafkaListenerContainerFactory<>();
+		factory.setConsumerFactory(consumerFactory);
+		factory.setCommonErrorHandler(kafkaDefaultErrorHandler);
+		factory.setBatchListener(true);
+		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+		return factory;
+	}
 }

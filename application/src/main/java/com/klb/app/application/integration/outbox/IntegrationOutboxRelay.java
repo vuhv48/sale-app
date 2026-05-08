@@ -27,15 +27,15 @@ public class IntegrationOutboxRelay {
 	@Value("${app.kafka.outbox.batch-size:50}")
 	private int batchSize;
 
-	@Scheduled(fixedDelayString = "${app.kafka.outbox.publish-interval-ms:2000}")
-	public void relayPending() {
-		var ids = outboxRepository.findIdsByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, batchSize));
-		for (UUID id : ids) {
-			try {
-				dispatchService.publishOne(id);
-			} catch (Exception e) {
-				log.warn("[outbox] unexpected error id={}", id, e);
-			}
-		}
-	}
+//	@Scheduled(fixedDelayString = "${app.kafka.outbox.publish-interval-ms:2000}")
+//	public void relayPending() {
+//		var ids = outboxRepository.findIdsByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, batchSize));
+//		for (UUID id : ids) {
+//			try {
+//				dispatchService.publishOne(id);
+//			} catch (Exception e) {
+//				log.warn("[outbox] unexpected error id={}", id, e);
+//			}
+//		}
+//	}
 }
