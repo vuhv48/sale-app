@@ -91,12 +91,15 @@ app:
       # OPA Data API path that returns boolean decision.
       policy-path: ${OPA_POLICY_PATH:v1/data/sale/authz/allow}
   kafka:
-    enabled: ${APP_KAFKA_ENABLED:false}
+    enabled: ${APP_KAFKA_ENABLED:true}
     topic-prefix: app-platform
     outbox:
       relay-enabled: ${APP_KAFKA_OUTBOX_RELAY_ENABLED:true}
       publish-interval-ms: 2000
       batch-size: 50
+    customer-sync:
+      # So luong thread consumer trong 1 instance (tong throughput = partitions * instances * concurrency)
+      concurrency: ${APP_KAFKA_CUSTOMER_SYNC_CONCURRENCY:6}
   redis:
     enabled: ${APP_REDIS_ENABLED:false}
     key-prefix: app-platform
