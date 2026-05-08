@@ -17,7 +17,11 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "app.kafka", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(
+		prefix = "app.kafka",
+		name = {"enabled", "outbox.relay-enabled"},
+		havingValue = "true",
+		matchIfMissing = true)
 @RequiredArgsConstructor
 public class IntegrationOutboxRelay {
 

@@ -44,6 +44,7 @@ sequenceDiagram
 |------------|--------|------------------------------|
 | `app.kafka.enabled` | Bật Kafka + bean publisher + relay | `false` (local dùng `application-local.yaml`) |
 | `app.kafka.topic-prefix` | Tiền tố topic | `app-platform` |
+| `app.kafka.outbox.relay-enabled` | Bật/tắt relay polling trong app | `true` |
 | `app.kafka.outbox.publish-interval-ms` | Khoảng cách giữa hai lần poll outbox | `2000` |
 | `app.kafka.outbox.batch-size` | Số bản ghi tối đa mỗi lần poll | `50` |
 
@@ -97,6 +98,7 @@ Các endpoint `/api/demo/kafka-ping`, `/api/demo/kafka-echo` và `DemoKafkaListe
 2. **Kafka tắt:** Không có `KafkaTopicFactory` → `StudentServiceImpl` **không** insert outbox (hành vi tương tự “tắt tích hợp Kafka”).
 3. **Trễ gửi:** Message có thể tới Kafka **vài giây** sau khi API trả 201, tùy `publish-interval-ms` và tải hệ thống.
 4. **CDC:** Hiện tại relay là **poll trong ứng dụng**. Có thể thay/thêm **Debezium** đọc thay đổi bảng outbox sau này nếu kiến trúc yêu cầu.
+   - Xem chi tiết migration: `docs/cdc-migration-guide.md`
 
 ## Liên quan
 

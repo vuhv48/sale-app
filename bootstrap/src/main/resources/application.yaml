@@ -94,6 +94,7 @@ app:
     enabled: ${APP_KAFKA_ENABLED:false}
     topic-prefix: app-platform
     outbox:
+      relay-enabled: ${APP_KAFKA_OUTBOX_RELAY_ENABLED:true}
       publish-interval-ms: 2000
       batch-size: 50
   redis:
