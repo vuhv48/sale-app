@@ -1,5 +1,6 @@
 package com.klb.app.web.controller;
 
+import com.klb.app.application.batch.DemoGreetingTrigger;
 import com.klb.app.application.batch.StudentCsvImportTrigger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.Map;
 public class StudentBatchController {
 
 	private final StudentCsvImportTrigger studentCsvImportTrigger;
+	private final DemoGreetingTrigger demoGreetingTrigger;
 
 	/**
 	 * Chạy job import sinh viên mẫu từ {@code classpath:batch/sample-students.csv}.
@@ -27,5 +29,19 @@ public class StudentBatchController {
 				"exitStatus", r.exitStatus(),
 				"status", r.status(),
 				"executionId", r.executionId()));
+	}
+
+	/**
+	 * Chạy job demo đọc {@code classpath:batch/demo-greeting.csv} và in lời chào ra log/stdout.
+	 */
+	@PostMapping("/jobs/demo-greeting")
+	public ResponseEntity<Map<String, Object>> runDemoGreeting() {
+		var r = demoGreetingTrigger.run();
+		return ResponseEntity.ok(Map.of(
+				"jobName", r.jobName(),
+				"jobInstanceId", r.jobInstanceId(),
+				"jobExecutionId", r.jobExecutionId(),
+				"status", r.status(),
+				"exitStatus", r.exitStatus()));
 	}
 }

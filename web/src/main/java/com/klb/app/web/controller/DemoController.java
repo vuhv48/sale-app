@@ -4,6 +4,8 @@ import com.klb.app.application.service.demo.KafkaPingDemoService;
 import com.klb.app.application.service.demo.KafkaPingResult;
 import com.klb.app.application.service.demo.RedisCounterDemoService;
 import com.klb.app.application.service.demo.RedisCounterResult;
+import com.klb.app.application.service.demo.RedisStickyNoteDemoResult;
+import com.klb.app.application.service.demo.RedisStickyNoteDemoService;
 import com.klb.app.application.service.demo.RedisStudentObjectDemoResult;
 import com.klb.app.application.service.demo.RedisStudentObjectDemoService;
 import com.klb.app.application.service.demo.MongoStudentNotesAppendResult;
@@ -11,6 +13,7 @@ import com.klb.app.application.service.demo.MongoStudentNotesDemoResult;
 import com.klb.app.application.service.demo.MongoStudentNotesDemoService;
 import com.klb.app.application.service.demo.RedisStudentSnippet;
 import com.klb.app.web.dto.MongoStudentNoteAppendRequest;
+import com.klb.app.web.dto.RedisStickyNoteRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +35,7 @@ import java.util.UUID;
 public class DemoController {
 
 	private final RedisCounterDemoService redisCounterDemoService;
+	private final RedisStickyNoteDemoService redisStickyNoteDemoService;
 	private final RedisStudentObjectDemoService redisStudentObjectDemoService;
 	private final MongoStudentNotesDemoService mongoStudentNotesDemoService;
 	private final KafkaPingDemoService kafkaPingDemoService;
@@ -45,6 +49,17 @@ public class DemoController {
 	@GetMapping("/redis-counter/read")
 	public RedisCounterResult redisCounterRead() {
 		return redisCounterDemoService.getGlobalDemoCounter();
+	}
+
+	/** Doc / ghi mot chuoi demo (SET + TTL 24h) — hoc Redis co ban hon counter INCR. */
+	@GetMapping("/redis-sticky-note")
+	public RedisStickyNoteDemoResult redisStickyNoteGet() {
+		return redisStickyNoteDemoService.get();
+	}
+
+	@PostMapping("/redis-sticky-note")
+	public RedisStickyNoteDemoResult redisStickyNoteSave(@Valid @RequestBody RedisStickyNoteRequest body) {
+		return redisStickyNoteDemoService.save(body.text());
 	}
 
 	/** POST JSON {@link RedisStudentSnippet} → luu Redis (JSON + index ma SV). */

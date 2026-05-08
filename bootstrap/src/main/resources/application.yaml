@@ -119,6 +119,8 @@ app:
       allowed-origins: ${APP_SECURITY_CORS_ALLOWED_ORIGINS:http://localhost:3002,http://localhost:3000}
     permit-all:
       - method: POST
+        path: /api/batch/jobs/demo-greeting
+      - method: POST
         path: /api/auth/login
       - method: POST
         path: /api/auth/register
@@ -142,6 +144,10 @@ app:
         path: /api/demo/redis-counter
       - method: GET
         path: /api/demo/redis-counter/read
+      - method: GET
+        path: /api/demo/redis-sticky-note
+      - method: POST
+        path: /api/demo/redis-sticky-note
       - method: POST
         path: /api/demo/redis-student-object
       - method: GET
