@@ -2,6 +2,8 @@ package com.klb.app.web.controller;
 
 import com.klb.app.application.service.demo.KafkaPingDemoService;
 import com.klb.app.application.service.demo.KafkaPingResult;
+import com.klb.app.application.service.demo.MultiThreadCounterDemoResult;
+import com.klb.app.application.service.demo.MultiThreadCounterDemoService;
 import com.klb.app.application.service.demo.RedisCounterDemoService;
 import com.klb.app.application.service.demo.RedisCounterResult;
 import com.klb.app.application.service.demo.RedisStudentObjectDemoResult;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 import java.util.UUID;
@@ -35,6 +38,7 @@ public class DemoController {
 	private final RedisStudentObjectDemoService redisStudentObjectDemoService;
 	private final MongoStudentNotesDemoService mongoStudentNotesDemoService;
 	private final KafkaPingDemoService kafkaPingDemoService;
+	private final MultiThreadCounterDemoService multiThreadCounterDemoService;
 
 	@GetMapping("/redis-counter")
 	public RedisCounterResult redisCounter() {
@@ -90,6 +94,18 @@ public class DemoController {
 	@GetMapping("/kafka-ping-dlq")
 	public KafkaPingResult kafkaPingDlq() {
 		return kafkaPingDemoService.sendPingDlqDemo();
+	}
+
+	/**
+	 * Demo race condition: so sanh ket qua counter++ khong dong bo va co dong bo.
+	 * Example: /api/demo/thread-race?threads=8&incrementsPerThread=200000
+	 */
+	@GetMapping("/thread-race")
+	public MultiThreadCounterDemoResult threadRace(
+			@RequestParam(defaultValue = "8") int threads,
+			@RequestParam(defaultValue = "200000") int incrementsPerThread
+	) {
+		return multiThreadCounterDemoService.runCounterRaceDemo(threads, incrementsPerThread);
 	}
 
 	@GetMapping("/admin")
